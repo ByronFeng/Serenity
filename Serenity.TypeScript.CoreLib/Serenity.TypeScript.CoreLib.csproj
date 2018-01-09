@@ -80,6 +80,7 @@
     <TypeScriptCompile Include="Decorators\Attributes.ts" />
     <TypeScriptCompile Include="Decorators\Decorators.ts" />
     <TypeScriptCompile Include="Services\Criteria.ts" />
+    <TypeScriptCompile Include="UI\Serenity.Script.UI.ts" />
     <TypeScriptCompile Include="UI\Helpers\SlickHelpers.ts" />
     <TypeScriptCompile Include="UI\Helpers\LazyLoadHelper.ts" />
     <TypeScriptCompile Include="UI\Helpers\SubDialogHelper.ts" />
@@ -98,8 +99,11 @@
     <TypeScriptCompile Include="UI\Editors\CheckTreeEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\DateEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\DateTimeEditor.ts" />
+    <TypeScriptCompile Include="UI\Widgets\Select2Editor.ts" />
     <TypeScriptCompile Include="UI\Editors\DateYearEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\DecimalEditor.ts" />
+    <TypeScriptCompile Include="UI\Editors\LookupEditorOptions.ts" />
+    <TypeScriptCompile Include="UI\Editors\LookupEditorBase.ts" />
     <TypeScriptCompile Include="UI\Editors\LookupEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\MaskedEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\StringEditor.ts" />
@@ -141,7 +145,6 @@
     <TypeScriptCompile Include="UI\Widgets\CustomValidation.ts" />
     <TypeScriptCompile Include="UI\Widgets\IValidateRequired.ts" />
     <TypeScriptCompile Include="UI\Widgets\DataChangeInfo.ts" />
-    <TypeScriptCompile Include="UI\Widgets\Select2Editor.ts" />
     <TypeScriptCompile Include="UI\Dialogs\TemplatedDialog.ts" />
     <TypeScriptCompile Include="UI\Dialogs\PropertyDialog.ts" />
     <TypeScriptCompile Include="UI\Filtering\FilterDialog.ts" />

@@ -50,10 +50,6 @@
         set_value(value: string): void;
     }
 
-    class AsyncLookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
-        constructor(hidden: JQuery, opt: LookupEditorOptions);
-    }
-
     interface ToolbarOptions {
         buttons?: ToolButton[];
         hotkeyContext?: any;
@@ -65,6 +61,7 @@
     }
 
     class BooleanFiltering extends BaseFiltering {
+        getOperators(): Serenity.FilterOperator[];
     }
 
     class BooleanFormatter implements Slick.Formatter {
@@ -76,7 +73,7 @@
     }
 
     class CascadedWidgetLink<TParent> {
-        constructor(widget: Serenity.Widget<any>, parentChange: (p1: TParent) => void);
+        constructor(parentType: Function, widget: Serenity.Widget<any>, parentChange: (p1: TParent) => void);
         bind(): TParent;
         unbind(): TParent;
         get_parentID(): string;
@@ -132,6 +129,7 @@
     }
 
     class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
 
     interface IReadOnly {

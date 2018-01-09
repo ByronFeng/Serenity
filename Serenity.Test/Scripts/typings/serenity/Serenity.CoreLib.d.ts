@@ -252,7 +252,7 @@ interface Select2QueryOptions {
 interface Select2Result {
     results: any;
     more: boolean;
-    context: any;
+    context?: any;
 }
 interface Select2AjaxOptions {
     transport?: any;
@@ -929,11 +929,11 @@ declare namespace Serenity {
         function formKey(value: string): (target: Function) => void;
         function generatedCode(origin?: string): (target: Function) => void;
         function idProperty(value: string): (target: Function) => void;
-        function registerClass(intf?: any[], asm?: ss.AssemblyReg): (target: Function) => void;
-        function registerInterface(intf?: any[], asm?: ss.AssemblyReg): (target: Function) => void;
-        function registerEnum(target: any, enumKey?: string, asm?: ss.AssemblyReg): void;
-        function registerEditor(intf?: any[], asm?: ss.AssemblyReg): (target: Function) => void;
-        function registerFormatter(intf?: (typeof ISlickFormatter)[], asm?: ss.AssemblyReg): (target: Function) => void;
+        function registerClass(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+        function registerInterface(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+        function registerEnum(target: any, enumKey?: string, typeName?: string, asm?: ss.AssemblyReg): void;
+        function registerEditor(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+        function registerFormatter(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
         function filterable(value?: boolean): (target: Function) => void;
         function itemName(value: string): (target: Function) => void;
         function isActiveProperty(value: string): (target: Function) => void;
@@ -1295,6 +1295,62 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
+    class Select2Editor<TOptions, TItem> extends Widget<TOptions> implements Serenity.ISetEditValue, Serenity.IGetEditValue, Serenity.IStringValue, Serenity.IReadOnly {
+        items: Select2Item[];
+        protected multiple: boolean;
+        protected itemById: Q.Dictionary<Select2Item>;
+        protected pageSize: number;
+        protected lastCreateTerm: string;
+        constructor(hidden: JQuery, opt?: any);
+        destroy(): void;
+        protected emptyItemText(): any;
+        protected getSelect2Options(): Select2Options;
+        get_delimited(): boolean;
+        protected clearItems(): void;
+        protected addItem(item: Select2Item): void;
+        protected addOption(key: string, text: string, source?: any, disabled?: boolean): void;
+        protected addInplaceCreate(addTitle: string, editTitle: string): void;
+        protected inplaceCreateClick(e: JQueryEventObject): void;
+        protected isAutoComplete(): boolean;
+        getCreateSearchChoice(getName: (z: any) => string): (s: string) => {
+            id: string;
+            text: string;
+        };
+        setEditValue(source: any, property: PropertyItem): void;
+        getEditValue(property: PropertyItem, target: any): void;
+        protected get_select2Container(): JQuery;
+        protected get_items(): Select2Item[];
+        protected get_itemByKey(): Q.Dictionary<Select2Item>;
+        get_value(): any;
+        value: string;
+        set_value(value: string): void;
+        protected get_values(): string[];
+        values: string[];
+        protected set_values(value: string[]): void;
+        protected get_text(): string;
+        readonly text: string;
+        get_readOnly(): boolean;
+        readOnly: boolean;
+        set_readOnly(value: boolean): void;
+    }
+    interface Select2Item {
+        id: string;
+        text: string;
+        source?: any;
+        disabled?: boolean;
+    }
+    class SelectEditor extends Select2Editor<SelectEditorOptions, Select2Item> {
+        constructor(hidden: JQuery, opt: SelectEditorOptions);
+        getItems(): any[];
+        protected emptyItemText(): any;
+        updateItems(): void;
+    }
+    interface SelectEditorOptions {
+        items?: any[];
+        emptyOptionText?: string;
+    }
+}
+declare namespace Serenity {
     class DateYearEditor extends SelectEditor {
         constructor(hidden: JQuery, opt: DateYearEditorOptions);
     }
@@ -1319,28 +1375,6 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class LookupEditorBase<TOptions extends LookupEditorOptions, TItem> extends Select2Editor<TOptions, TItem> {
-        constructor(input: JQuery, opt?: TOptions);
-        protected cascadeItems(items: TItem[]): TItem[];
-        protected filterItems(items: TItem[]): TItem[];
-        protected getCasecadeFromValue(parent: Widget<any>): any;
-        protected getItems(lookup: Q.Lookup<TItem>): TItem[];
-        protected getItemText(item: TItem, lookup: Q.Lookup<TItem>): string;
-        protected getItemDisabled(item: TItem, lookup: Q.Lookup<TItem>): boolean;
-        protected getLookup(): Q.Lookup<TItem>;
-        protected getLookupKey(): string;
-        protected initNewEntity(entity: TItem): void;
-        protected updateItems(): void;
-        protected getDialogTypeKey(): string;
-        protected createEditDialog(callback: (dlg: Serenity.IEditDialog) => void): void;
-        onInitNewEntity: (entity: TItem) => void;
-        value: string;
-        cascadeField: string;
-        cascadeFrom: string;
-        cascadeValue: any;
-        filterField: string;
-        filterValue: any;
-    }
     interface LookupEditorOptions {
         lookupKey?: string;
         minimumResultsForSearch?: any;
@@ -1356,6 +1390,51 @@ declare namespace Serenity {
         multiple?: boolean;
         delimited?: boolean;
     }
+}
+declare namespace Serenity {
+    class LookupEditorBase<TOptions extends LookupEditorOptions, TItem> extends Select2Editor<TOptions, TItem> {
+        constructor(input: JQuery, opt?: TOptions);
+        protected initializeAsync(): PromiseLike<void>;
+        destroy(): void;
+        protected getLookupKey(): string;
+        protected getLookup(): Q.Lookup<TItem>;
+        protected getLookupAsync(): PromiseLike<Q.Lookup<TItem>>;
+        protected getItems(lookup: Q.Lookup<TItem>): TItem[];
+        protected getItemText(item: TItem, lookup: Q.Lookup<TItem>): any;
+        protected getItemDisabled(item: TItem, lookup: Q.Lookup<TItem>): boolean;
+        updateItems(): void;
+        updateItemsAsync(): PromiseLike<void>;
+        protected getDialogTypeKey(): string;
+        protected createEditDialog(callback: (dlg: IEditDialog) => void): void;
+        onInitNewEntity: (entity: TItem) => void;
+        protected initNewEntity(entity: TItem): void;
+        protected inplaceCreateClick(e: JQueryEventObject): void;
+        protected cascadeItems(items: TItem[]): TItem[];
+        protected filterItems(items: TItem[]): TItem[];
+        protected getCascadeFromValue(parent: Serenity.Widget<any>): any;
+        protected cascadeLink: Serenity.CascadedWidgetLink<Widget<any>>;
+        protected setCascadeFrom(value: string): void;
+        protected isAutoComplete(): boolean;
+        protected getSelect2Options(): Select2Options;
+        protected get_cascadeFrom(): string;
+        cascadeFrom: string;
+        protected set_cascadeFrom(value: string): void;
+        protected get_cascadeField(): any;
+        cascadeField: string;
+        protected set_cascadeField(value: string): void;
+        protected get_cascadeValue(): any;
+        cascadeValue: any;
+        protected set_cascadeValue(value: any): void;
+        protected get_filterField(): string;
+        filterField: string;
+        protected set_filterField(value: string): void;
+        protected get_filterValue(): any;
+        filterValue: any;
+        protected set_filterValue(value: any): void;
+        openDialogAsPanel: boolean;
+    }
+}
+declare namespace Serenity {
     class LookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
         constructor(input: JQuery, opt?: LookupEditorOptions);
     }
@@ -1600,7 +1679,7 @@ declare namespace Serenity {
 declare namespace Serenity {
     interface IFiltering {
         createEditor(): void;
-        getCriteria(displayText: any): any[];
+        getCriteria(): CriteriaWithText;
         getOperators(): FilterOperator[];
         loadState(state: any): void;
         saveState(): any;
@@ -1610,6 +1689,17 @@ declare namespace Serenity {
         set_container(value: JQuery): void;
         get_operator(): FilterOperator;
         set_operator(value: FilterOperator): void;
+    }
+    class IFiltering {
+    }
+    interface CriteriaWithText {
+        criteria?: any[];
+        displayText?: string;
+    }
+    interface IQuickFiltering {
+        initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
+    }
+    class IQuickFiltering {
     }
 }
 declare namespace Serenity {
@@ -1628,53 +1718,69 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class BaseFiltering {
-        getOperators(): FilterOperator[];
-        appendNullableOperators(list: FilterOperator[]): FilterOperator[];
-        appendComparisonOperators(list: FilterOperator[]): FilterOperator[];
-        isNullable(): boolean;
-        createEditor(): void;
-        operatorFormat(op: FilterOperator): string;
-        getTitle(field: PropertyItem): string;
-        displayText(op: FilterOperator, values: any): string;
-        getCriteriaField(): string;
-        getCriteria(displayText: any): any[];
-        loadState(state: any): void;
-        saveState(): any;
-        argumentNull(): any;
-        validateEditorValue(value: string): any;
-        getEditorValue(): any;
-        getEditorText(): string;
+    abstract class BaseFiltering implements IFiltering, IQuickFiltering {
+        private field;
         get_field(): PropertyItem;
         set_field(value: PropertyItem): void;
+        private container;
         get_container(): JQuery;
         set_container(value: JQuery): void;
+        private operator;
         get_operator(): FilterOperator;
         set_operator(value: FilterOperator): void;
+        abstract getOperators(): FilterOperator[];
+        protected appendNullableOperators(list: FilterOperator[]): FilterOperator[];
+        protected appendComparisonOperators(list: FilterOperator[]): FilterOperator[];
+        protected isNullable(): boolean;
+        createEditor(): void;
+        protected operatorFormat(op: FilterOperator): any;
+        protected getTitle(field: PropertyItem): any;
+        protected displayText(op: FilterOperator, values?: any[]): string;
+        protected getCriteriaField(): string;
+        getCriteria(): CriteriaWithText;
+        loadState(state: any): void;
+        saveState(): any;
+        protected argumentNull(): any;
+        validateEditorValue(value: string): string;
+        getEditorValue(): string;
+        getEditorText(): any;
+        initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
 }
 declare namespace Serenity {
     class StringFiltering extends BaseFiltering {
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
-    class BaseEditorFiltering<TEditor> extends BaseFiltering {
-        editor: Serenity.Widget<any>;
-        useEditor(): boolean;
-        useIdField(): boolean;
+    abstract class BaseEditorFiltering<TEditor> extends BaseFiltering {
+        editorType: any;
+        constructor(editorType: any);
+        protected useEditor(): boolean;
+        protected editor: Serenity.Widget<any>;
+        createEditor(): void;
+        protected useIdField(): boolean;
+        getCriteriaField(): string;
         getEditorOptions(): any;
+        loadState(state: any): void;
+        saveState(): any;
+        getEditorValue(): any;
+        initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
 }
 declare namespace Serenity {
     class DateFiltering extends BaseEditorFiltering<DateEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
     class DateTimeFiltering extends BaseEditorFiltering<DateEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
     class DecimalFiltering extends BaseEditorFiltering<DecimalEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
@@ -1685,10 +1791,12 @@ declare namespace Serenity {
         set_useRelative(value: boolean): void;
         get_useLike(): boolean;
         set_useLike(value: boolean): void;
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
     class LookupFiltering extends BaseEditorFiltering<LookupEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
 }
 declare namespace Serenity {
@@ -1901,9 +2009,6 @@ declare namespace Serenity {
         get_value(): string;
         set_value(value: string): void;
     }
-    class AsyncLookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
-        constructor(hidden: JQuery, opt: LookupEditorOptions);
-    }
     interface ToolbarOptions {
         buttons?: ToolButton[];
         hotkeyContext?: any;
@@ -1913,6 +2018,7 @@ declare namespace Serenity {
         findButton(className: string): JQuery;
     }
     class BooleanFiltering extends BaseFiltering {
+        getOperators(): Serenity.FilterOperator[];
     }
     class BooleanFormatter implements Slick.Formatter {
         format(ctx: Slick.FormatterContext): string;
@@ -1922,7 +2028,7 @@ declare namespace Serenity {
         set_trueText(value: string): void;
     }
     class CascadedWidgetLink<TParent> {
-        constructor(widget: Serenity.Widget<any>, parentChange: (p1: TParent) => void);
+        constructor(parentType: Function, widget: Serenity.Widget<any>, parentChange: (p1: TParent) => void);
         bind(): TParent;
         unbind(): TParent;
         get_parentID(): string;
@@ -1969,6 +2075,7 @@ declare namespace Serenity {
         maxValue?: number;
     }
     class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
+        getOperators(): Serenity.FilterOperator[];
     }
     interface IReadOnly {
         get_readOnly(): boolean;
@@ -2153,55 +2260,6 @@ declare namespace Serenity {
         type: string;
         entityId: any;
         entity: any;
-    }
-}
-declare namespace Serenity {
-    class Select2Editor<TOptions, TItem> extends Widget<TOptions> {
-        items: Select2Item[];
-        itemById: any;
-        pageSize: number;
-        lastCreateTerm: string;
-        constructor(hidden: JQuery, opt?: any);
-        emptyItemText(): string;
-        getSelect2Options(): Select2Options;
-        clearItems(): void;
-        addItem(item: Select2Item): void;
-        addOption(key: string, text: string, source?: any, disabled?: boolean): void;
-        addInplaceCreate(addTitle?: string, editTitle?: string): void;
-        inplaceCreateClick(e: any): void;
-        getCreateSearchChoice(getName?: (p1: any) => string): (p1: string) => any;
-        setEditValue(source: any, property: PropertyItem): void;
-        getEditValue(property: PropertyItem, target: any): void;
-        get_delimited(): boolean;
-        get_select2Container(): JQuery;
-        get_items(): Select2Item[];
-        get_itemByKey(): any;
-        value: string;
-        values: string[];
-        get_text(): string;
-        readOnly: boolean;
-    }
-    namespace Select2Extensions {
-        function select2(element: JQuery): JQuery;
-        function select2(element: JQuery, options: Select2Options): JQuery;
-        function select2(element: JQuery, action: string): JQuery;
-        function select2(element: JQuery, option: string, value: any): JQuery;
-        function select2(element: JQuery, option: string): any;
-    }
-    interface Select2Item {
-        id: string;
-        text: string;
-        source?: any;
-        disabled?: boolean;
-    }
-    class SelectEditor extends Select2Editor<SelectEditorOptions, Select2Item> {
-        constructor(hidden: JQuery, opt: SelectEditorOptions);
-        getItems(): any[];
-        updateItems(): void;
-    }
-    interface SelectEditorOptions {
-        items?: any[];
-        emptyOptionText?: string;
     }
 }
 declare namespace Serenity {
@@ -2965,4 +3023,24 @@ declare var Vue: any;
 declare namespace Q {
     function validatorAbortHandler(validator: any): void;
     function validateOptions(options: JQueryValidation.ValidationOptions): any;
+}
+declare namespace Serenity {
+    class AsyncLookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
+        constructor(hidden: JQuery, opt: LookupEditorOptions);
+        getLookupKey(): any;
+    }
+}
+declare namespace Serenity.FilterPanels {
+    class FieldSelect extends Select2Editor<any, PropertyItem> {
+        constructor(hidden: JQuery, fields: PropertyItem[]);
+        emptyItemText(): string;
+        getSelect2Options(): Select2Options;
+    }
+}
+declare namespace Serenity.FilterPanels {
+    class OperatorSelect extends Select2Editor<any, FilterOperator> {
+        constructor(hidden: JQuery, source: FilterOperator[]);
+        emptyItemText(): string;
+        getSelect2Options(): Select2Options;
+    }
 }
