@@ -94,6 +94,7 @@
     <TypeScriptCompile Include="UI\PropertyGrid\IGetEditValue.ts" />
     <TypeScriptCompile Include="UI\PropertyGrid\ISetEditValue.ts" />
     <TypeScriptCompile Include="UI\PropertyGrid\IStringValue.ts" />
+    <TypeScriptCompile Include="UI\PropertyGrid\IReadOnly.ts" />
     <TypeScriptCompile Include="UI\PropertyGrid\PropertyItem.ts" />
     <TypeScriptCompile Include="UI\Editors\BooleanEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\CheckTreeEditor.ts" />

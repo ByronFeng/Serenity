@@ -60,6 +60,7 @@
     "UI/PropertyGrid/IGetEditValue.ts",
     "UI/PropertyGrid/ISetEditValue.ts",
     "UI/PropertyGrid/IStringValue.ts",
+    "UI/PropertyGrid/IReadOnly.ts",
     "UI/PropertyGrid/PropertyItem.ts",
     "UI/Editors/BooleanEditor.ts",
     "UI/Editors/CheckTreeEditor.ts",

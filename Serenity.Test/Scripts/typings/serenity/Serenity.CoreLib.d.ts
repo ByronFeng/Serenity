@@ -1168,6 +1168,14 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
+    interface IReadOnly {
+        get_readOnly(): boolean;
+        set_readOnly(value: boolean): void;
+    }
+    class IReadOnly {
+    }
+}
+declare namespace Serenity {
     interface PropertyItem {
         name?: string;
         title?: string;
@@ -2076,12 +2084,6 @@ declare namespace Serenity {
     }
     class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
         getOperators(): Serenity.FilterOperator[];
-    }
-    interface IReadOnly {
-        get_readOnly(): boolean;
-        set_readOnly(value: boolean): void;
-    }
-    class IReadOnly {
     }
     interface HtmlContentEditorOptions {
     }

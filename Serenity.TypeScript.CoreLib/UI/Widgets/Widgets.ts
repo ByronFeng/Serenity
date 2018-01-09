@@ -132,14 +132,6 @@
         getOperators(): Serenity.FilterOperator[];
     }
 
-    interface IReadOnly {
-        get_readOnly(): boolean;
-        set_readOnly(value: boolean): void;
-    }
-
-    class IReadOnly {
-    }
-
     interface HtmlContentEditorOptions {
     }
 

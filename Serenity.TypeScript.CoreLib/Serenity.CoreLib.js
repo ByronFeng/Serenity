@@ -3122,6 +3122,18 @@ var Serenity;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
+    var IReadOnly = /** @class */ (function () {
+        function IReadOnly() {
+        }
+        IReadOnly = __decorate([
+            Serenity.Decorators.registerInterface('Serenity.IReadOnly')
+        ], IReadOnly);
+        return IReadOnly;
+    }());
+    Serenity.IReadOnly = IReadOnly;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
     var BooleanEditor = /** @class */ (function (_super) {
         __extends(BooleanEditor, _super);
         function BooleanEditor(input) {
