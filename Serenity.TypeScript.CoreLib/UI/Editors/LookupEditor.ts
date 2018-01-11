@@ -1,5 +1,8 @@
-﻿declare namespace Serenity {
-    class LookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
-        constructor(input: JQuery, opt?: LookupEditorOptions);
+﻿namespace Serenity {
+
+    export class LookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
+        constructor(hidden: JQuery, opt?: LookupEditorOptions) {
+            super(hidden, opt);
+        }
     }
 }

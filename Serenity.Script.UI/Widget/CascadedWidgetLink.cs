@@ -3,7 +3,7 @@
     using System;
     using System.Runtime.CompilerServices;
 
-    [IncludeGenericArguments(false)]
+    [Imported(ObeysTypeSystem = true), IncludeGenericArguments(false)]
     public class CascadedWidgetLink<TParent>
         where TParent: Widget
     {

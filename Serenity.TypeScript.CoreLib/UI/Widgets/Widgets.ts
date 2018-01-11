@@ -16,9 +16,6 @@
         list = 2
     }
 
-    class ISlickFormatter {
-    }
-
     class ScriptContext {
     }
 
@@ -58,30 +55,6 @@
     class Toolbar extends Widget<ToolbarOptions> {
         constructor(div: JQuery, options: ToolbarOptions);
         findButton(className: string): JQuery;
-    }
-
-    class BooleanFiltering extends BaseFiltering {
-        getOperators(): Serenity.FilterOperator[];
-    }
-
-    class BooleanFormatter implements Slick.Formatter {
-        format(ctx: Slick.FormatterContext): string;
-        get_falseText(): string;
-        set_falseText(value: string): void;
-        get_trueText(): string;
-        set_trueText(value: string): void;
-    }
-
-    class CascadedWidgetLink<TParent> {
-        constructor(parentType: Function, widget: Serenity.Widget<any>, parentChange: (p1: TParent) => void);
-        bind(): TParent;
-        unbind(): TParent;
-        get_parentID(): string;
-        set_parentID(value: string): void;
-    }
-
-    class CheckboxFormatter implements Slick.Formatter {
-        format(ctx: Slick.FormatterContext): string;
     }
 
     class CheckListEditor extends Widget<CheckListEditorOptions> {
@@ -158,7 +131,7 @@
         filterItems?: FilterLine[];
         quickFilters?: Q.Dictionary<any>;
         quickFilterText?: string;
-        quickSearchField: QuickSearchField;
+        quickSearchField?: QuickSearchField;
         quickSearchText?: string;
         includeDeleted?: boolean;
     }
@@ -169,13 +142,6 @@
     }
 
     interface CKEditorConfig {
-    }
-
-    interface IDataGrid {
-        getElement(): JQuery;
-        getGrid(): Slick.Grid;
-        getView(): Slick.RemoteView<any>;
-        getFilterStore(): Serenity.FilterStore;
     }
 
     enum CaptureOperationType {

@@ -90,17 +90,28 @@
             }
         }
 
+        function distinct(arr: any[]) {
+            return arr.filter((item, pos) => arr.indexOf(item) === pos);
+        }
+
+        function merge(arr1: any[], arr2: any[]) {
+            if (!arr1 || !arr2)
+                return (arr1 || arr2 || []).slice();
+
+            return distinct(arr1.concat(arr2));
+        }
+
         export function registerClass(nameOrIntf?: string | any[], intf2?: any[]) {
             return function (target: Function) {
                 if (typeof nameOrIntf == "string") {
                     (target as any).__typeName = nameOrIntf;
                     if (intf2)
-                        (target as any).__interfaces = intf2;
+                        (target as any).__interfaces = merge((target as any).__interfaces, intf2);
                 }
                 else {
                     (target as any).__register = true;
                     if (nameOrIntf)
-                        (target as any).__interfaces = nameOrIntf;
+                        (target as any).__interfaces = merge((target as any).__interfaces, nameOrIntf);
                 }
 
                 (target as any).__class = true;
@@ -118,7 +129,7 @@
                 else {
                     (target as any).__register = true;
                     if (nameOrIntf)
-                        (target as any).__interfaces = nameOrIntf;
+                        (target as any).__interfaces = merge((target as any).__interfaces, nameOrIntf);
                 }
 
                 (target as any).__interface = true;

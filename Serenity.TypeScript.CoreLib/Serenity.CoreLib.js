@@ -328,10 +328,10 @@ var Q;
         Culture.dateOrder = 'dmy';
         Culture.dateFormat = 'dd/MM/yyyy';
         Culture.dateTimeFormat = 'dd/MM/yyyy HH:mm:ss';
-        function get_groupSeperator() {
+        function get_groupSeparator() {
             return ((Culture.decimalSeparator === ',') ? '.' : ',');
         }
-        Culture.get_groupSeperator = get_groupSeperator;
+        Culture.get_groupSeparator = get_groupSeparator;
         ;
         var s = Q.trimToNull($('script#ScriptCulture').html());
         if (s != null) {
@@ -357,7 +357,7 @@ var Q;
             return null;
         }
         dec = dec || Q.Culture.decimalSeparator;
-        grp = grp || Q.Culture.get_groupSeperator();
+        grp = grp || Q.Culture.get_groupSeparator();
         var r = "";
         if (fmt.indexOf(".") > -1) {
             var dp = dec;
@@ -445,7 +445,7 @@ var Q;
     var isoRegexp = /(\d{4,})(?:-(\d{1,2})(?:-(\d{1,2})(?:[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d+))?)?(?:(Z)|([+-])(\d{1,2})(?::(\d{1,2}))?)?)?)?)?/;
     function parseInteger(s) {
         s = Q.trim(s.toString());
-        var ts = Q.Culture.get_groupSeperator();
+        var ts = Q.Culture.get_groupSeparator();
         if (s && s.length && s.indexOf(ts) > 0) {
             s = s.replace(new RegExp("(\\b\\d{1,3})\\" + ts + "(?=\\d{3}(\\D|$))", "g"), '$1');
         }
@@ -460,7 +460,7 @@ var Q;
         s = Q.trim(s.toString());
         if (s.length == 0)
             return null;
-        var ts = Q.Culture.get_groupSeperator();
+        var ts = Q.Culture.get_groupSeparator();
         if (s && s.length && s.indexOf(ts) > 0) {
             s = s.replace(new RegExp("(\\b\\d{1,3})\\" + ts + "(?=\\d{3}(\\D|$))", "g"), '$1');
         }
@@ -2464,17 +2464,25 @@ var Serenity;
             };
         }
         Decorators.idProperty = idProperty;
+        function distinct(arr) {
+            return arr.filter(function (item, pos) { return arr.indexOf(item) === pos; });
+        }
+        function merge(arr1, arr2) {
+            if (!arr1 || !arr2)
+                return (arr1 || arr2 || []).slice();
+            return distinct(arr1.concat(arr2));
+        }
         function registerClass(nameOrIntf, intf2) {
             return function (target) {
                 if (typeof nameOrIntf == "string") {
                     target.__typeName = nameOrIntf;
                     if (intf2)
-                        target.__interfaces = intf2;
+                        target.__interfaces = merge(target.__interfaces, intf2);
                 }
                 else {
                     target.__register = true;
                     if (nameOrIntf)
-                        target.__interfaces = nameOrIntf;
+                        target.__interfaces = merge(target.__interfaces, nameOrIntf);
                 }
                 target.__class = true;
                 target.__assembly = ss.__assemblies['App'];
@@ -2491,7 +2499,7 @@ var Serenity;
                 else {
                     target.__register = true;
                     if (nameOrIntf)
-                        target.__interfaces = nameOrIntf;
+                        target.__interfaces = merge(target.__interfaces, nameOrIntf);
                 }
                 target.__interface = true;
                 target.__assembly = ss.__assemblies['App'];
@@ -3881,6 +3889,17 @@ var Serenity;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
+    var LookupEditor = /** @class */ (function (_super) {
+        __extends(LookupEditor, _super);
+        function LookupEditor(hidden, opt) {
+            return _super.call(this, hidden, opt) || this;
+        }
+        return LookupEditor;
+    }(Serenity.LookupEditorBase));
+    Serenity.LookupEditor = LookupEditor;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
     // http://digitalbush.com/projects/masked-input-plugin/
     var MaskedEditor = /** @class */ (function (_super) {
         __extends(MaskedEditor, _super);
@@ -4385,7 +4404,7 @@ var Serenity;
             filter.options = Q.deepClone({}, this.getEditorOptions(), this.get_field().quickFilterParams);
         };
         BaseEditorFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering', [Serenity.IFiltering, Serenity.IQuickFiltering])
+            Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering')
         ], BaseEditorFiltering);
         return BaseEditorFiltering;
     }(Serenity.BaseFiltering));
@@ -4764,6 +4783,1742 @@ var Serenity;
         var TemplatedDialog_1;
     }(Serenity.TemplatedWidget));
     Serenity.TemplatedDialog = TemplatedDialog;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var IDataGrid = /** @class */ (function () {
+        function IDataGrid() {
+        }
+        IDataGrid = __decorate([
+            Serenity.Decorators.registerInterface('Serenity.IDataGrid')
+        ], IDataGrid);
+        return IDataGrid;
+    }());
+    Serenity.IDataGrid = IDataGrid;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var DataGrid = /** @class */ (function (_super) {
+        __extends(DataGrid, _super);
+        function DataGrid(container, options) {
+            var _this = _super.call(this, container, options) || this;
+            _this.restoringSettings = 0;
+            var self = _this;
+            _this.element.addClass('s-DataGrid').html('');
+            _this.element.addClass('s-' + ss.getTypeName(ss.getInstanceType(_this)));
+            _this.element.addClass('require-layout').bind('layout.' + _this.uniqueName, function () {
+                self.layout();
+            });
+            _this.setTitle(_this.getInitialTitle());
+            var buttons = _this.getButtons();
+            if (buttons != null) {
+                _this.createToolbar(buttons);
+            }
+            _this.slickContainer = _this.createSlickContainer();
+            _this.view = _this.createView();
+            _this.slickGrid = _this.createSlickGrid();
+            if (_this.enableFiltering()) {
+                _this.createFilterBar();
+            }
+            if (_this.usePager()) {
+                _this.createPager();
+            }
+            _this.bindToSlickEvents();
+            _this.bindToViewEvents();
+            if (buttons != null) {
+                _this.createToolbarExtensions();
+            }
+            _this.createQuickFilters();
+            _this.updateDisabledState();
+            if (!_this.isAsyncWidget()) {
+                _this.initialSettings = _this.getCurrentSettings(null);
+                _this.restoreSettings(null, null);
+                window.setTimeout(function () { return _this.initialPopulate(); }, 0);
+            }
+            return _this;
+        }
+        DataGrid.prototype.add_submitHandlers = function (action) {
+            this.submitHandlers = ss.delegateCombine(this.submitHandlers, action);
+        };
+        DataGrid.prototype.remove_submitHandlers = function (action) {
+            this.submitHandlers = ss.delegateRemove(this.submitHandlers, action);
+        };
+        DataGrid.prototype.layout = function () {
+            if (!this.element.is(':visible')) {
+                return;
+            }
+            if (this.slickContainer == null) {
+                return;
+            }
+            Q.layoutFillHeight(this.slickContainer);
+            if (this.element.hasClass('responsive-height')) {
+                if (this.slickGrid != null && this.slickGrid.getOptions().autoHeight) {
+                    this.slickContainer.children('.slick-viewport').css('height', 'auto');
+                    this.slickGrid.setOptions({ autoHeight: false });
+                }
+                if (this.slickGrid != null && (this.slickContainer.height() < 200 || $(window.window).width() < 768)) {
+                    this.element.css('height', 'auto');
+                    this.slickContainer.css('height', 'auto').children('.slick-viewport').css('height', 'auto');
+                    this.slickGrid.setOptions({ autoHeight: true });
+                }
+            }
+            if (this.slickGrid != null) {
+                this.slickGrid.resizeCanvas();
+                this.slickGrid.invalidate();
+            }
+        };
+        DataGrid.prototype.getInitialTitle = function () {
+            return null;
+        };
+        DataGrid.prototype.createToolbarExtensions = function () {
+        };
+        DataGrid.prototype.createQuickFilters = function () {
+            var filters = this.getQuickFilters();
+            for (var f = 0; f < filters.length; f++) {
+                var filter = filters[f];
+                this.addQuickFilter(filter);
+            }
+        };
+        DataGrid.prototype.getQuickFilters = function () {
+            var list = [];
+            var columns = this.allColumns.filter(function (x) {
+                return x.sourceItem && x.sourceItem.quickFilter === true;
+            });
+            for (var _i = 0, columns_1 = columns; _i < columns_1.length; _i++) {
+                var column = columns_1[_i];
+                var item = column.sourceItem;
+                var quick = {};
+                var name = item.name;
+                var title = Q.tryGetText(item.title);
+                if (title == null) {
+                    title = item.title;
+                    if (title == null) {
+                        title = name;
+                    }
+                }
+                var filteringType = Serenity.FilteringTypeRegistry.get(Q.coalesce(item.filteringType, 'String'));
+                if (filteringType === Serenity.DateFiltering) {
+                    quick = this.dateRangeQuickFilter(name, title);
+                }
+                else if (filteringType === Serenity.DateTimeFiltering) {
+                    quick = this.dateTimeRangeQuickFilter(name, title);
+                }
+                else if (filteringType === Serenity.BooleanFiltering) {
+                    var q = item.quickFilterParams || {};
+                    var f = item.filteringParams || {};
+                    var trueText = q['trueText'];
+                    if (trueText == null) {
+                        trueText = f['trueText'];
+                    }
+                    var falseText = q['falseText'];
+                    if (falseText == null) {
+                        falseText = f['falseText'];
+                    }
+                    quick = this.booleanQuickFilter(name, title, trueText, falseText);
+                }
+                else {
+                    var filtering = new filteringType();
+                    if (filtering && ss.isInstanceOfType(filtering, Serenity.IQuickFiltering)) {
+                        Serenity.ReflectionOptionsSetter.set(filtering, item.filteringParams);
+                        filtering.set_field(item);
+                        filtering.set_operator({ key: Serenity.FilterOperators.EQ });
+                        filtering.initQuickFilter(quick);
+                        quick.options = Q.deepClone(quick.options, item.quickFilterParams);
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                if (!!item.quickFilterSeparator) {
+                    quick.separator = true;
+                }
+                quick.cssClass = item.quickFilterCssClass;
+                list.push(quick);
+            }
+            return list;
+        };
+        DataGrid.prototype.findQuickFilter = function (type, field) {
+            return $('#' + this.uniqueName + '_QuickFilter_' + field).getWidget(type);
+        };
+        DataGrid.prototype.tryFindQuickFilter = function (type, field) {
+            var el = $('#' + this.uniqueName + '_QuickFilter_' + field);
+            if (!el.length)
+                return null;
+            return el.tryGetWidget(type);
+        };
+        DataGrid.prototype.createIncludeDeletedButton = function () {
+            if (!Q.isEmptyOrNull(this.getIsActiveProperty())) {
+                Serenity.GridUtils.addIncludeDeletedToggle(this.toolbar.element, this.view, null, false);
+            }
+        };
+        DataGrid.prototype.getQuickSearchFields = function () {
+            return null;
+        };
+        DataGrid.prototype.createQuickSearchInput = function () {
+            Serenity.GridUtils.addQuickSearchInput(this.toolbar.element, this.view, this.getQuickSearchFields());
+        };
+        DataGrid.prototype.destroy = function () {
+            this.submitHandlers = null;
+            if (this.toolbar) {
+                this.toolbar.destroy();
+                this.toolbar = null;
+            }
+            if (this.slickGrid) {
+                this.slickGrid.onClick.clear();
+                this.slickGrid.onSort.clear();
+                this.slickGrid.onColumnsResized.clear();
+                this.slickGrid.onColumnsReordered.clear();
+                this.slickGrid.destroy();
+                this.slickGrid = null;
+            }
+            if (this.view) {
+                this.view.onDataChanged.clear();
+                this.view.onSubmit = null;
+                this.view.setFilter(null);
+                this.view = null;
+            }
+            this.titleDiv = null;
+            _super.prototype.destroy.call(this);
+        };
+        DataGrid.prototype.getItemCssClass = function (item, index) {
+            var activeFieldName = this.getIsActiveProperty();
+            if (Q.isEmptyOrNull(activeFieldName)) {
+                return null;
+            }
+            var value = item[activeFieldName];
+            if (value == null) {
+                return null;
+            }
+            if (typeof (value) === 'number') {
+                if (value < 0) {
+                    return 'deleted';
+                }
+                else if (value === 0) {
+                    return 'inactive';
+                }
+            }
+            else if (typeof (value) === 'boolean') {
+                if (value === false) {
+                    return 'deleted';
+                }
+            }
+            return null;
+        };
+        DataGrid.prototype.getItemMetadata = function (item, index) {
+            var itemClass = this.getItemCssClass(item, index);
+            if (Q.isEmptyOrNull(itemClass)) {
+                return new Object();
+            }
+            return { cssClasses: itemClass };
+        };
+        DataGrid.prototype.postProcessColumns = function (columns) {
+            Serenity.SlickHelper.setDefaults(columns, this.getLocalTextDbPrefix());
+            return columns;
+        };
+        DataGrid.prototype.initialPopulate = function () {
+            var self = this;
+            if (this.populateWhenVisible()) {
+                Serenity.LazyLoadHelper.executeEverytimeWhenShown(this.element, function () {
+                    self.refreshIfNeeded();
+                }, false);
+                if (this.element.is(':visible') && this.view) {
+                    this.view.populate();
+                }
+            }
+            else if (this.view) {
+                this.view.populate();
+            }
+        };
+        DataGrid.prototype.initializeAsync = function () {
+            var _this = this;
+            return _super.prototype.initializeAsync.call(this)
+                .then(function () { return _this.getColumnsAsync(); })
+                .then(function (columns) {
+                _this.allColumns = columns;
+                _this.postProcessColumns(_this.allColumns);
+                var self = _this;
+                if (_this.filterBar) {
+                    _this.filterBar.set_store(new Serenity.FilterStore(_this.allColumns.filter(function (x) {
+                        return x.sourceItem && x.sourceItem.notFilterable !== true;
+                    }).map(function (x1) {
+                        return x1.sourceItem;
+                    })));
+                    _this.filterBar.get_store().add_changed(function (s, e) {
+                        if (_this.restoringSettings <= 0) {
+                            self.persistSettings(null);
+                            self.refresh();
+                        }
+                    });
+                }
+                var visibleColumns = _this.allColumns.filter(function (x2) {
+                    return x2.visible !== false;
+                });
+                if (_this.slickGrid) {
+                    _this.slickGrid.setColumns(visibleColumns);
+                }
+                _this.setInitialSortOrder();
+                _this.initialSettings = _this.getCurrentSettings(null);
+                _this.restoreSettings(null, null);
+                _this.initialPopulate();
+            }, null);
+        };
+        DataGrid.prototype.createSlickGrid = function () {
+            var visibleColumns;
+            if (this.isAsyncWidget()) {
+                visibleColumns = [];
+            }
+            else {
+                this.allColumns = this.getColumns();
+                visibleColumns = this.postProcessColumns(this.allColumns).filter(function (x) {
+                    return x.visible !== false;
+                });
+            }
+            var slickOptions = this.getSlickOptions();
+            var grid = new Slick.Grid(this.slickContainer, this.view, visibleColumns, slickOptions);
+            grid.registerPlugin(new Slick.AutoTooltips({
+                enableForHeaderCells: true
+            }));
+            this.slickGrid = grid;
+            this.rows = this.slickGrid;
+            if (!this.isAsyncWidget()) {
+                this.setInitialSortOrder();
+            }
+            return grid;
+        };
+        DataGrid.prototype.setInitialSortOrder = function () {
+            var sortBy = this.getDefaultSortBy();
+            if (this.view) {
+                this.view.sortBy = Array.prototype.slice.call(sortBy);
+            }
+            var mapped = sortBy.map(function (s) {
+                var x = {};
+                if (s && Q.endsWith(s.toLowerCase(), ' desc')) {
+                    x.columnId = ss.trimEndString(s.substr(0, s.length - 5));
+                    x.sortAsc = false;
+                }
+                else {
+                    x.columnId = s;
+                    x.sortAsc = true;
+                }
+                return x;
+            });
+            this.slickGrid.setSortColumns(mapped);
+        };
+        DataGrid.prototype.itemAt = function (row) {
+            return this.slickGrid.getDataItem(row);
+        };
+        DataGrid.prototype.rowCount = function () {
+            return this.slickGrid.getDataLength();
+        };
+        DataGrid.prototype.getItems = function () {
+            return this.view.getItems();
+        };
+        DataGrid.prototype.setItems = function (value) {
+            this.view.setItems(value, true);
+        };
+        DataGrid.prototype.bindToSlickEvents = function () {
+            var _this = this;
+            var self = this;
+            this.slickGridOnSort = function (e, p) {
+                self.view.populateLock();
+                try {
+                    var sortBy = [];
+                    var col;
+                    if (!!p.multiColumnSort) {
+                        for (var i = 0; !!(i < p.sortCols.length); i++) {
+                            var x = p.sortCols[i];
+                            col = x.sortCol;
+                            if (col == null) {
+                                col = {};
+                            }
+                            sortBy.push(col.field + (!!x.sortAsc ? '' : ' DESC'));
+                        }
+                    }
+                    else {
+                        var col = p.sortCol;
+                        if (col == null) {
+                            col = {};
+                        }
+                        sortBy.push(col.field + (!!p.sortAsc ? '' : ' DESC'));
+                    }
+                    self.view.sortBy = sortBy;
+                }
+                finally {
+                    self.view.populateUnlock();
+                }
+                self.view.populate();
+                _this.persistSettings(null);
+            };
+            this.slickGrid.onSort.subscribe(this.slickGridOnSort);
+            this.slickGridOnClick = function (e1, p1) {
+                self.onClick(e1, p1.row, p1.cell);
+            };
+            this.slickGrid.onClick.subscribe(this.slickGridOnClick);
+            this.slickGrid.onColumnsReordered.subscribe(function (e2, p2) {
+                return _this.persistSettings(null);
+            });
+            this.slickGrid.onColumnsResized.subscribe(function (e3, p3) {
+                return _this.persistSettings(null);
+            });
+        };
+        DataGrid.prototype.getAddButtonCaption = function () {
+            return Q.coalesce(Q.tryGetText('Controls.DataGrid.NewButton'), 'New');
+        };
+        DataGrid.prototype.getButtons = function () {
+            return [];
+        };
+        DataGrid.prototype.editItem = function (entityOrId) {
+            throw new ss.NotImplementedException();
+        };
+        DataGrid.prototype.editItemOfType = function (itemType, entityOrId) {
+            if (itemType === this.getItemType()) {
+                this.editItem(entityOrId);
+                return;
+            }
+            throw new ss.NotImplementedException();
+        };
+        DataGrid.prototype.onClick = function (e, row, cell) {
+            if (e.isDefaultPrevented()) {
+                return;
+            }
+            var target = $(e.target);
+            if (!target.hasClass('s-EditLink')) {
+                target = target.closest('a');
+            }
+            if (target.hasClass('s-EditLink')) {
+                e.preventDefault();
+                this.editItemOfType(Serenity.SlickFormatting.getItemType(target), Serenity.SlickFormatting.getItemId(target));
+            }
+        };
+        DataGrid.prototype.viewDataChanged = function (e, rows) {
+            this.markupReady();
+        };
+        DataGrid.prototype.bindToViewEvents = function () {
+            var self = this;
+            this.view.onDataChanged.subscribe(function (e, d) {
+                return self.viewDataChanged(e, d);
+            });
+            this.view.onSubmit = function (view) {
+                return self.onViewSubmit();
+            };
+            this.view.setFilter(function (item, view1) {
+                return self.onViewFilter(item);
+            });
+            this.view.onProcessData = function (response, view2) {
+                return self.onViewProcessData(response);
+            };
+        };
+        DataGrid.prototype.onViewProcessData = function (response) {
+            return response;
+        };
+        DataGrid.prototype.onViewFilter = function (item) {
+            return true;
+        };
+        DataGrid.prototype.getIncludeColumns = function (include) {
+            var columns = this.slickGrid.getColumns();
+            for (var _i = 0, columns_2 = columns; _i < columns_2.length; _i++) {
+                var column = columns_2[_i];
+                if (column.field) {
+                    include[column.field] = true;
+                }
+                if (column.referencedFields) {
+                    for (var _a = 0, _b = column.referencedFields; _a < _b.length; _a++) {
+                        var x = _b[_a];
+                        include[x] = true;
+                    }
+                }
+            }
+        };
+        DataGrid.prototype.setCriteriaParameter = function () {
+            delete this.view.params['Criteria'];
+            if (this.filterBar) {
+                var criteria = this.filterBar.get_store().get_activeCriteria();
+                if (!Serenity.Criteria.isEmpty(criteria)) {
+                    this.view.params.Criteria = criteria;
+                }
+            }
+        };
+        DataGrid.prototype.setEquality = function (field, value) {
+            Q.setEquality(this.view.params, field, value);
+        };
+        DataGrid.prototype.setIncludeColumnsParameter = function () {
+            var include = {};
+            this.getIncludeColumns(include);
+            var array = [];
+            for (var _i = 0, _a = Object.keys(include); _i < _a.length; _i++) {
+                var key = _a[_i];
+                array.push(key);
+            }
+            this.view.params.IncludeColumns = array;
+        };
+        DataGrid.prototype.onViewSubmit = function () {
+            if (this.isDisabled || !this.getGridCanLoad()) {
+                return false;
+            }
+            this.setCriteriaParameter();
+            this.setIncludeColumnsParameter();
+            this.invokeSubmitHandlers();
+            return true;
+        };
+        DataGrid.prototype.markupReady = function () {
+        };
+        DataGrid.prototype.createSlickContainer = function () {
+            return $('<div class="grid-container"></div>').appendTo(this.element);
+        };
+        DataGrid.prototype.createView = function () {
+            var opt = this.getViewOptions();
+            return new Slick.RemoteView(opt);
+        };
+        DataGrid.prototype.getDefaultSortBy = function () {
+            if (this.slickGrid) {
+                var columns = this.slickGrid.getColumns().filter(function (x) {
+                    return x.sortOrder && x.sortOrder !== 0;
+                });
+                if (columns.length > 0) {
+                    columns.sort(function (x1, y) {
+                        return ss.compare(Math.abs(x1.sortOrder), Math.abs(y.sortOrder));
+                    });
+                    var list = [];
+                    for (var i = 0; i < columns.length; i++) {
+                        var col = columns[i];
+                        list.push(col.field + ((col.sortOrder < 0) ? ' DESC' : ''));
+                    }
+                    return list;
+                }
+            }
+            return [];
+        };
+        DataGrid.prototype.usePager = function () {
+            return false;
+        };
+        DataGrid.prototype.enableFiltering = function () {
+            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.FilterableAttribute, true);
+            return attr.length > 0 && attr[0].value;
+        };
+        DataGrid.prototype.populateWhenVisible = function () {
+            return false;
+        };
+        DataGrid.prototype.createFilterBar = function () {
+            var _this = this;
+            var filterBarDiv = $('<div/>').appendTo(this.element);
+            var self = this;
+            this.filterBar = new Serenity.FilterDisplayBar(filterBarDiv);
+            if (!this.isAsyncWidget()) {
+                this.filterBar.set_store(new Serenity.FilterStore(this.allColumns.filter(function (x) {
+                    return (x.sourceItem != null) && x.sourceItem.notFilterable !== true;
+                }).map(function (x1) {
+                    return x1.sourceItem;
+                })));
+                this.filterBar.get_store().add_changed(function (s, e) {
+                    if (_this.restoringSettings <= 0) {
+                        self.persistSettings(null);
+                        self.refresh();
+                    }
+                });
+            }
+        };
+        DataGrid.prototype.getPagerOptions = function () {
+            return {
+                view: this.view,
+                rowsPerPage: 20,
+                rowsPerPageOptions: [20, 100, 500, 2500]
+            };
+        };
+        DataGrid.prototype.createPager = function () {
+            var pagerDiv = $('<div></div>').appendTo(this.element);
+            pagerDiv.slickPager(this.getPagerOptions());
+        };
+        DataGrid.prototype.getViewOptions = function () {
+            var _this = this;
+            var opt = {};
+            opt.idField = this.getIdProperty();
+            opt.sortBy = this.getDefaultSortBy();
+            if (!this.usePager()) {
+                opt.rowsPerPage = 0;
+            }
+            else if (this.element.hasClass('responsive-height')) {
+                opt.rowsPerPage = (($(window.window).width() < 768) ? 20 : 100);
+            }
+            else {
+                opt.rowsPerPage = 100;
+            }
+            opt.getItemMetadata = function (item, index) {
+                return _this.getItemMetadata(item, index);
+            };
+            return opt;
+        };
+        DataGrid.prototype.createToolbar = function (buttons) {
+            var toolbarDiv = $('<div class="grid-toolbar"></div>').appendTo(this.element);
+            this.toolbar = new Serenity.Toolbar(toolbarDiv, { buttons: buttons, hotkeyContext: this.element[0] });
+        };
+        DataGrid.prototype.getTitle = function () {
+            if (!this.titleDiv) {
+                return null;
+            }
+            return this.titleDiv.children().text();
+        };
+        DataGrid.prototype.setTitle = function (value) {
+            if (value !== this.getTitle()) {
+                if (value == null) {
+                    if (this.titleDiv) {
+                        this.titleDiv.remove();
+                        this.titleDiv = null;
+                    }
+                }
+                else {
+                    if (!this.titleDiv) {
+                        this.titleDiv = $('<div class="grid-title"><div class="title-text"></div></div>')
+                            .prependTo(this.element);
+                    }
+                    this.titleDiv.children().text(value);
+                }
+                this.layout();
+            }
+        };
+        DataGrid.prototype.getItemType = function () {
+            return 'Item';
+        };
+        DataGrid.prototype.itemLink = function (itemType, idField, text, cssClass, encode) {
+            if (encode === void 0) { encode = true; }
+            if (itemType == null) {
+                itemType = this.getItemType();
+            }
+            if (idField == null) {
+                idField = this.getIdProperty();
+            }
+            return Serenity.SlickFormatting.itemLink(itemType, idField, text, cssClass, encode);
+        };
+        DataGrid.prototype.getColumnsKey = function () {
+            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.ColumnsKeyAttribute, true);
+            if (attr && attr.length > 0) {
+                return attr[0].value;
+            }
+            return null;
+        };
+        DataGrid.prototype.getPropertyItemsAsync = function () {
+            var _this = this;
+            return Promise.resolve()
+                .then(function () {
+                var columnsKey = _this.getColumnsKey();
+                if (!Q.isEmptyOrNull(columnsKey)) {
+                    return Q.getColumnsAsync(columnsKey);
+                }
+                return Promise.resolve([]);
+            }, null);
+        };
+        DataGrid.prototype.getPropertyItems = function () {
+            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.ColumnsKeyAttribute, true);
+            var columnsKey = this.getColumnsKey();
+            if (!Q.isEmptyOrNull(columnsKey)) {
+                return Q.getColumns(columnsKey);
+            }
+            return [];
+        };
+        DataGrid.prototype.getColumns = function () {
+            var propertyItems = this.getPropertyItems();
+            return this.propertyItemsToSlickColumns(propertyItems);
+        };
+        DataGrid.prototype.propertyItemsToSlickColumns = function (propertyItems) {
+            var columns = Serenity.PropertyItemSlickConverter.toSlickColumns(propertyItems);
+            for (var i = 0; i < propertyItems.length; i++) {
+                var item = propertyItems[i];
+                var column = columns[i];
+                if (item.editLink === true) {
+                    var oldFormat = { $: column.format };
+                    var css = { $: (item.editLinkCssClass) != null ? item.editLinkCssClass : null };
+                    column.format = this.itemLink(item.editLinkItemType != null ? item.editLinkItemType : null, item.editLinkIdField != null ? item.editLinkIdField : null, ss.mkdel({ oldFormat: oldFormat }, function (ctx) {
+                        if (this.oldFormat.$ !== null) {
+                            return this.oldFormat.$(ctx);
+                        }
+                        return Q.htmlEncode(ctx.value);
+                    }), ss.mkdel({ css: css }, function (ctx1) {
+                        return Q.coalesce(this.css.$, '');
+                    }), false);
+                    if (!Q.isEmptyOrNull(item.editLinkIdField)) {
+                        column.referencedFields = column.referencedFields || [];
+                        column.referencedFields.push(item.editLinkIdField);
+                    }
+                }
+            }
+            return columns;
+        };
+        DataGrid.prototype.getColumnsAsync = function () {
+            var _this = this;
+            return this.getPropertyItemsAsync().then(function (propertyItems) {
+                return _this.propertyItemsToSlickColumns(propertyItems);
+            }, null);
+        };
+        DataGrid.prototype.getSlickOptions = function () {
+            var opt = {};
+            opt.multiSelect = false;
+            opt.multiColumnSort = true;
+            opt.enableCellNavigation = false;
+            opt.headerRowHeight = Serenity.DataGrid.defaultHeaderHeight;
+            opt.rowHeight = Serenity.DataGrid.defaultRowHeight;
+            return opt;
+        };
+        DataGrid.prototype.populateLock = function () {
+            this.view.populateLock();
+        };
+        DataGrid.prototype.populateUnlock = function () {
+            this.view.populateUnlock();
+        };
+        DataGrid.prototype.getGridCanLoad = function () {
+            return true;
+        };
+        DataGrid.prototype.refresh = function () {
+            if (!this.populateWhenVisible()) {
+                this.internalRefresh();
+                return;
+            }
+            if (this.slickContainer.is(':visible')) {
+                this.slickContainer.data('needsRefresh', false);
+                this.internalRefresh();
+                return;
+            }
+            this.slickContainer.data('needsRefresh', true);
+        };
+        DataGrid.prototype.refreshIfNeeded = function () {
+            if (!!this.slickContainer.data('needsRefresh')) {
+                this.slickContainer.data('needsRefresh', false);
+                this.internalRefresh();
+            }
+        };
+        DataGrid.prototype.internalRefresh = function () {
+            this.view.populate();
+        };
+        DataGrid.prototype.setIsDisabled = function (value) {
+            if (this.isDisabled !== value) {
+                this.isDisabled = value;
+                if (this.isDisabled) {
+                    this.view.setItems([], true);
+                }
+                this.updateDisabledState();
+            }
+        };
+        DataGrid.prototype.getLocalTextDbPrefix = function () {
+            if (this.localTextDbPrefix == null) {
+                this.localTextDbPrefix = Q.coalesce(this.getLocalTextPrefix(), '');
+                if (this.localTextDbPrefix.length > 0 && !Q.endsWith(this.localTextDbPrefix, '.')) {
+                    this.localTextDbPrefix = 'Db.' + this.localTextDbPrefix + '.';
+                }
+            }
+            return this.localTextDbPrefix;
+        };
+        DataGrid.prototype.getLocalTextPrefix = function () {
+            var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.LocalTextPrefixAttribute, true);
+            if (attributes.length >= 1)
+                return attributes[0].value;
+            return '';
+        };
+        DataGrid.prototype.getIdProperty = function () {
+            if (this.idProperty == null) {
+                var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.IdPropertyAttribute, true);
+                if (attributes.length === 1) {
+                    this.idProperty = attributes[0].value;
+                }
+                else {
+                    this.idProperty = 'ID';
+                }
+            }
+            return this.idProperty;
+        };
+        DataGrid.prototype.getIsActiveProperty = function () {
+            if (this.isActiveProperty == null) {
+                var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.IsActivePropertyAttribute, true);
+                if (attributes.length === 1) {
+                    this.isActiveProperty = attributes[0].value;
+                }
+                else {
+                    this.isActiveProperty = '';
+                }
+            }
+            return this.isActiveProperty;
+        };
+        DataGrid.prototype.updateDisabledState = function () {
+            this.slickContainer.toggleClass('ui-state-disabled', !!this.isDisabled);
+        };
+        DataGrid.prototype.resizeCanvas = function () {
+            this.slickGrid.resizeCanvas();
+        };
+        DataGrid.prototype.subDialogDataChange = function () {
+            this.refresh();
+        };
+        DataGrid.prototype.addFilterSeparator = function () {
+            if (this.quickFiltersDiv) {
+                this.quickFiltersDiv.append($('<hr/>'));
+            }
+        };
+        DataGrid.prototype.determineText = function (getKey) {
+            var localTextPrefix = this.getLocalTextDbPrefix();
+            if (!Q.isEmptyOrNull(localTextPrefix)) {
+                var local = Q.tryGetText(getKey(localTextPrefix));
+                if (local != null) {
+                    return local;
+                }
+            }
+            return null;
+        };
+        DataGrid.prototype.addQuickFilter = function (opt) {
+            var _this = this;
+            if (opt == null) {
+                throw new ss.ArgumentNullException('opt');
+            }
+            if (this.quickFiltersDiv == null) {
+                $('<div/>').addClass('clear').appendTo(this.toolbar.element);
+                this.quickFiltersDiv = $('<div/>').addClass('quick-filters-bar').appendTo(this.toolbar.element);
+            }
+            if (opt.separator) {
+                this.addFilterSeparator();
+            }
+            var item = $("<div class='quick-filter-item'><span class='quick-filter-label'></span></div>")
+                .appendTo(this.quickFiltersDiv)
+                .data('qffield', opt.field).children();
+            var title = opt.title;
+            if (title == null) {
+                title = this.determineText(function (pre) {
+                    return pre + opt.field;
+                });
+                if (title == null) {
+                    title = opt.field;
+                }
+            }
+            var quickFilter = item.text(title).parent();
+            if (opt.displayText != null) {
+                quickFilter.data('qfdisplaytext', opt.displayText);
+            }
+            if (opt.saveState != null) {
+                quickFilter.data('qfsavestate', opt.saveState);
+            }
+            if (opt.loadState != null) {
+                quickFilter.data('qfloadstate', opt.loadState);
+            }
+            if (!Q.isEmptyOrNull(opt.cssClass)) {
+                quickFilter.addClass(opt.cssClass);
+            }
+            var widget = Serenity.Widget.create({
+                type: opt.type,
+                element: function (e) {
+                    if (!Q.isEmptyOrNull(opt.field)) {
+                        e.attr('id', _this.uniqueName + '_QuickFilter_' + opt.field);
+                    }
+                    e.attr('placeholder', ' ');
+                    e.appendTo(quickFilter);
+                    if (opt.element != null) {
+                        opt.element(e);
+                    }
+                },
+                options: opt.options,
+                init: opt.init
+            });
+            var submitHandler = function () {
+                if (quickFilter.hasClass('ignore')) {
+                    return;
+                }
+                var request = _this.view.params;
+                request.EqualityFilter = request.EqualityFilter || {};
+                var value = Serenity.EditorUtils.getValue(widget);
+                var active = value != null && !Q.isEmptyOrNull(value.toString());
+                if (opt.handler != null) {
+                    var args = {
+                        field: opt.field,
+                        request: request,
+                        equalityFilter: request.EqualityFilter,
+                        value: value,
+                        active: active,
+                        widget: widget,
+                        handled: true
+                    };
+                    opt.handler(args);
+                    quickFilter.toggleClass('quick-filter-active', args.active);
+                    if (!args.handled) {
+                        request.EqualityFilter[opt.field] = value;
+                    }
+                }
+                else {
+                    request.EqualityFilter[opt.field] = value;
+                    quickFilter.toggleClass('quick-filter-active', active);
+                }
+            };
+            Serenity.WX.changeSelect2(widget, function (e1) {
+                _this.quickFilterChange(e1);
+            });
+            this.add_submitHandlers(submitHandler);
+            widget.element.bind('remove.' + this.uniqueName, function (x) {
+                _this.remove_submitHandlers(submitHandler);
+            });
+            return widget;
+        };
+        DataGrid.prototype.addDateRangeFilter = function (field, title) {
+            return this.addQuickFilter(this.dateRangeQuickFilter(field, title));
+        };
+        DataGrid.prototype.dateRangeQuickFilter = function (field, title) {
+            var end = null;
+            return {
+                field: field,
+                type: Serenity.DateEditor,
+                title: title,
+                element: function (e1) {
+                    end = Serenity.Widget.create({
+                        type: Serenity.DateEditor,
+                        element: function (e2) {
+                            e2.insertAfter(e1);
+                        },
+                        options: null,
+                        init: null
+                    });
+                    end.element.change(function (x) {
+                        e1.triggerHandler('change');
+                    });
+                    $('<span/>').addClass('range-separator').text('-').insertAfter(e1);
+                },
+                handler: function (args) {
+                    var active1 = !Q.isTrimmedEmpty(args.widget.value);
+                    var active2 = !Q.isTrimmedEmpty(end.value);
+                    if (active1 && !Q.parseDate(args.widget.element.val())) {
+                        active1 = false;
+                        Q.notifyWarning(Q.text('Validation.DateInvalid'), '', null);
+                        args.widget.element.val('');
+                    }
+                    if (active2 && !Q.parseDate(end.element.val())) {
+                        active2 = false;
+                        Q.notifyWarning(Q.text('Validation.DateInvalid'), '', null);
+                        end.element.val('');
+                    }
+                    args.active = active1 || active2;
+                    if (active1) {
+                        args.request.Criteria = Serenity.Criteria.join(args.request.Criteria, 'and', [[args.field], '>=', args.widget.value]);
+                    }
+                    if (active2) {
+                        var next = new Date(end.valueAsDate.valueOf());
+                        next.setDate(next.getDate() + 1);
+                        args.request.Criteria = Serenity.Criteria.join(args.request.Criteria, 'and', [[args.field], '<', Q.formatDate(next, 'yyyy-MM-dd')]);
+                    }
+                },
+                displayText: function (w, l) {
+                    var v1 = Serenity.EditorUtils.getDisplayText(w);
+                    var v2 = Serenity.EditorUtils.getDisplayText(end);
+                    if (Q.isEmptyOrNull(v1) && Q.isEmptyOrNull(v2)) {
+                        return null;
+                    }
+                    var text1 = l + ' >= ' + v1;
+                    var text2 = l + ' <= ' + v2;
+                    if (!Q.isEmptyOrNull(v1) && !Q.isEmptyOrNull(v2)) {
+                        return text1 + ' ' + Q.coalesce(Q.tryGetText('Controls.FilterPanel.And'), 'and') + ' ' + text2;
+                    }
+                    else if (!Q.isEmptyOrNull(v1)) {
+                        return text1;
+                    }
+                    else {
+                        return text2;
+                    }
+                },
+                saveState: function (w1) {
+                    return [Serenity.EditorUtils.getValue(w1), Serenity.EditorUtils.getValue(end)];
+                },
+                loadState: function (w2, state) {
+                    if (state == null || !Q.isArray(state) || state.length !== 2) {
+                        state = [null, null];
+                    }
+                    Serenity.EditorUtils.setValue(w2, state[0]);
+                    Serenity.EditorUtils.setValue(end, state[1]);
+                }
+            };
+        };
+        DataGrid.prototype.addDateTimeRangeFilter = function (field, title) {
+            return this.addQuickFilter(this.dateTimeRangeQuickFilter(field, title));
+        };
+        DataGrid.prototype.dateTimeRangeQuickFilter = function (field, title) {
+            var end = null;
+            return {
+                field: field,
+                type: Serenity.DateTimeEditor,
+                title: title,
+                element: function (e1) {
+                    end = Serenity.Widget.create({
+                        type: Serenity.DateTimeEditor,
+                        element: function (e2) {
+                            e2.insertAfter(e1);
+                        },
+                        options: null,
+                        init: null
+                    });
+                    end.element.change(function (x) {
+                        e1.triggerHandler('change');
+                    });
+                    $('<span/>').addClass('range-separator').text('-').insertAfter(e1);
+                },
+                init: function (i) {
+                    i.element.parent().find('.time').change(function (x1) {
+                        i.element.triggerHandler('change');
+                    });
+                },
+                handler: function (args) {
+                    var active1 = !Q.isTrimmedEmpty(args.widget.value);
+                    var active2 = !Q.isTrimmedEmpty(end.value);
+                    if (active1 && !Q.parseDate(args.widget.element.val())) {
+                        active1 = false;
+                        Q.notifyWarning(Q.text('Validation.DateInvalid'), '', null);
+                        args.widget.element.val('');
+                    }
+                    if (active2 && !Q.parseDate(end.element.val())) {
+                        active2 = false;
+                        Q.notifyWarning(Q.text('Validation.DateInvalid'), '', null);
+                        end.element.val('');
+                    }
+                    args.active = active1 || active2;
+                    if (active1) {
+                        args.request.Criteria = Serenity.Criteria.join(args.request.Criteria, 'and', [[args.field], '>=', args.widget.value]);
+                    }
+                    if (active2) {
+                        args.request.Criteria = Serenity.Criteria.join(args.request.Criteria, 'and', [[args.field], '<=', end.value]);
+                    }
+                },
+                displayText: function (w, l) {
+                    var v1 = Serenity.EditorUtils.getDisplayText(w);
+                    var v2 = Serenity.EditorUtils.getDisplayText(end);
+                    if (Q.isEmptyOrNull(v1) && Q.isEmptyOrNull(v2)) {
+                        return null;
+                    }
+                    var text1 = l + ' >= ' + v1;
+                    var text2 = l + ' <= ' + v2;
+                    if (!Q.isEmptyOrNull(v1) && !Q.isEmptyOrNull(v2)) {
+                        return text1 + ' ' + Q.coalesce(Q.tryGetText('Controls.FilterPanel.And'), 'and') + ' ' + text2;
+                    }
+                    else if (!Q.isEmptyOrNull(v1)) {
+                        return text1;
+                    }
+                    else {
+                        return text2;
+                    }
+                },
+                saveState: function (w1) {
+                    return [Serenity.EditorUtils.getValue(w1), Serenity.EditorUtils.getValue(end)];
+                },
+                loadState: function (w2, state) {
+                    if (state == null || !Q.isArray(state) || state.length !== 2) {
+                        state = [null, null];
+                    }
+                    Serenity.EditorUtils.setValue(w2, state[0]);
+                    Serenity.EditorUtils.setValue(end, state[1]);
+                }
+            };
+        };
+        DataGrid.prototype.addBooleanFilter = function (field, title, yes, no) {
+            return this.addQuickFilter(this.booleanQuickFilter(field, title, yes, no));
+        };
+        DataGrid.prototype.booleanQuickFilter = function (field, title, yes, no) {
+            var opt = {};
+            var items = [];
+            var trueText = yes;
+            if (trueText == null) {
+                trueText = Q.text('Controls.FilterPanel.OperatorNames.true');
+            }
+            items.push(['1', trueText]);
+            var falseText = no;
+            if (falseText == null) {
+                falseText = Q.text('Controls.FilterPanel.OperatorNames.false');
+            }
+            items.push(['0', falseText]);
+            opt.items = items;
+            return {
+                field: field,
+                type: Serenity.SelectEditor,
+                title: title,
+                options: opt,
+                handler: function (args) {
+                    args.equalityFilter[args.field] = args.value == null || Q.isEmptyOrNull(args.value.toString()) ?
+                        null : !!Q.toId(args.value);
+                }
+            };
+        };
+        DataGrid.prototype.invokeSubmitHandlers = function () {
+            if (this.submitHandlers != null) {
+                this.submitHandlers();
+            }
+        };
+        DataGrid.prototype.quickFilterChange = function (e) {
+            this.persistSettings(null);
+            this.refresh();
+        };
+        DataGrid.prototype.getPersistanceStorage = function () {
+            return Serenity.DataGrid.defaultPersistanceStorage;
+        };
+        DataGrid.prototype.getPersistanceKey = function () {
+            var key = 'GridSettings:';
+            var path = window.location.pathname;
+            if (!Q.isEmptyOrNull(path)) {
+                key += path.substr(1).split(String.fromCharCode(47)).slice(0, 2).join('/') + ':';
+            }
+            key += ss.getTypeFullName(ss.getInstanceType(this));
+            return key;
+        };
+        DataGrid.prototype.gridPersistanceFlags = function () {
+            return {};
+        };
+        DataGrid.prototype.canShowColumn = function (column) {
+            if (column == null) {
+                return false;
+            }
+            var item = column.sourceItem;
+            if (item == null) {
+                return true;
+            }
+            if (item.filterOnly === true) {
+                return false;
+            }
+            if (item.readPermission == null) {
+                return true;
+            }
+            return Q.Authorization.hasPermission(item.readPermission);
+        };
+        DataGrid.prototype.restoreSettings = function (settings, flags) {
+            var _this = this;
+            if (settings == null) {
+                var storage = this.getPersistanceStorage();
+                if (storage == null) {
+                    return;
+                }
+                var json = Q.trimToNull(storage.getItem(this.getPersistanceKey()));
+                if (json != null && Q.startsWith(json, '{') && Q.endsWith(json, '}')) {
+                    settings = JSON.parse(json);
+                }
+                else {
+                    return;
+                }
+            }
+            if (!this.slickGrid) {
+                return;
+            }
+            var columns = this.slickGrid.getColumns();
+            var colById = null;
+            var updateColById = function (cl) {
+                colById = {};
+                for (var $t1 = 0; $t1 < cl.length; $t1++) {
+                    var c = cl[$t1];
+                    colById[c.id] = c;
+                }
+            };
+            this.view.beginUpdate();
+            this.restoringSettings++;
+            try {
+                flags = flags || this.gridPersistanceFlags();
+                if (settings.columns != null) {
+                    if (flags.columnVisibility !== false) {
+                        var visible = {};
+                        updateColById(this.allColumns);
+                        var newColumns = [];
+                        for (var $t2 = 0; $t2 < settings.columns.length; $t2++) {
+                            var x = settings.columns[$t2];
+                            if (x.id != null && x.visible === true) {
+                                var column = colById[x.id];
+                                if (this.canShowColumn(column)) {
+                                    column.visible = true;
+                                    newColumns.push(column);
+                                    delete colById[x.id];
+                                }
+                            }
+                        }
+                        for (var $t3 = 0; $t3 < this.allColumns.length; $t3++) {
+                            var c1 = this.allColumns[$t3];
+                            if (colById[c1.id] != null) {
+                                c1.visible = false;
+                                newColumns.push(c1);
+                            }
+                        }
+                        this.allColumns = newColumns;
+                        columns = this.allColumns.filter(function (x1) {
+                            return x1.visible === true;
+                        });
+                    }
+                    if (flags.columnWidths !== false) {
+                        updateColById(columns);
+                        for (var $t4 = 0; $t4 < settings.columns.length; $t4++) {
+                            var x2 = settings.columns[$t4];
+                            if (x2.id != null && x2.width != null && x2.width !== 0) {
+                                var column1 = colById[x2.id];
+                                if (column1 != null) {
+                                    column1.width = x2.width;
+                                }
+                            }
+                        }
+                    }
+                    if (flags.sortColumns !== false) {
+                        updateColById(columns);
+                        var list = [];
+                        var sortColumns = settings.columns.filter(function (x3) {
+                            return x3.id != null && Q.coalesce(x3.sort, 0) !== 0;
+                        });
+                        sortColumns.sort(function (a, b) {
+                            return a.sort - b.sort;
+                        });
+                        for (var $t5 = 0; $t5 < sortColumns.length; $t5++) {
+                            var x4 = sortColumns[$t5];
+                            var column2 = colById[x4.id];
+                            if (column2 != null) {
+                                list.push({
+                                    columnId: x4.id,
+                                    sortAsc: x4.sort > 0
+                                });
+                            }
+                        }
+                        this.view.sortBy = list.map(function (x5) {
+                            return x5.columnId + ((x5.sortAsc === false) ? ' DESC' : '');
+                        });
+                        this.slickGrid.setSortColumns(list);
+                    }
+                    this.slickGrid.setColumns(columns);
+                    this.slickGrid.invalidate();
+                }
+                if (settings.filterItems != null &&
+                    flags.filterItems !== false &&
+                    this.filterBar != null &&
+                    this.filterBar.get_store() != null) {
+                    ss.clear(this.filterBar.get_store().get_items());
+                    ss.arrayAddRange(this.filterBar.get_store().get_items(), settings.filterItems);
+                    this.filterBar.get_store().raiseChanged();
+                }
+                if (settings.includeDeleted != null &&
+                    flags.includeDeleted !== false) {
+                    var includeDeletedToggle = this.element.find('.s-IncludeDeletedToggle');
+                    if (!!settings.includeDeleted !== includeDeletedToggle.hasClass('pressed')) {
+                        includeDeletedToggle.children('a').click();
+                    }
+                }
+                if (settings.quickFilters != null &&
+                    flags.quickFilters !== false &&
+                    this.quickFiltersDiv != null &&
+                    this.quickFiltersDiv.length > 0) {
+                    this.quickFiltersDiv.find('.quick-filter-item').each(function (i, e) {
+                        var field = $(e).data('qffield');
+                        if (Q.isEmptyOrNull(field)) {
+                            return;
+                        }
+                        var widget = $('#' + _this.uniqueName + '_QuickFilter_' + field).tryGetWidget(Serenity.Widget);
+                        if (widget == null) {
+                            return;
+                        }
+                        var state = settings.quickFilters[field];
+                        var loadState = $(e).data('qfloadstate');
+                        if (loadState != null) {
+                            loadState(widget, state);
+                        }
+                        else {
+                            Serenity.EditorUtils.setValue(widget, state);
+                        }
+                    });
+                }
+                if (flags.quickSearch === true && (settings.quickSearchField != null || settings.quickSearchText != null)) {
+                    var qsInput = this.toolbar.element.find('.s-QuickSearchInput').first();
+                    if (qsInput.length > 0) {
+                        var qsWidget = qsInput.tryGetWidget(Serenity.QuickSearchInput);
+                        if (qsWidget != null) {
+                            this.view.populateLock();
+                            try {
+                                qsWidget.element.addClass('ignore-change');
+                                try {
+                                    if (settings.quickSearchField != null) {
+                                        qsWidget.set_field(settings.quickSearchField);
+                                    }
+                                    if (settings.quickSearchText != null &&
+                                        Q.trimToNull(settings.quickSearchText) !== Q.trimToNull(qsWidget.element.val())) {
+                                        qsWidget.element.val(settings.quickSearchText);
+                                    }
+                                }
+                                finally {
+                                    qsWidget.element.removeClass('ignore-change');
+                                    qsWidget.element.triggerHandler('execute-search');
+                                }
+                            }
+                            finally {
+                                this.view.populateUnlock();
+                            }
+                        }
+                    }
+                }
+            }
+            finally {
+                this.restoringSettings--;
+                this.view.endUpdate();
+            }
+        };
+        DataGrid.prototype.persistSettings = function (flags) {
+            var storage = this.getPersistanceStorage();
+            if (!storage) {
+                return;
+            }
+            var settings = this.getCurrentSettings(flags);
+            storage.setItem(this.getPersistanceKey(), $.toJSON(settings));
+        };
+        DataGrid.prototype.getCurrentSettings = function (flags) {
+            var _this = this;
+            flags = flags || this.gridPersistanceFlags();
+            var settings = {};
+            if (flags.columnVisibility !== false || flags.columnWidths !== false || flags.sortColumns !== false) {
+                settings.columns = [];
+                var sortColumns = this.slickGrid.getSortColumns();
+                var $t1 = this.slickGrid.getColumns();
+                for (var $t2 = 0; $t2 < $t1.length; $t2++) {
+                    var column = { $: $t1[$t2] };
+                    var p = {
+                        id: column.$.id
+                    };
+                    if (flags.columnVisibility !== false) {
+                        p.visible = true;
+                    }
+                    if (flags.columnWidths !== false) {
+                        p.width = column.$.width;
+                    }
+                    if (flags.sortColumns !== false) {
+                        var sort = Q.indexOf(sortColumns, ss.mkdel({ column: column }, function (x) {
+                            return x.columnId !== this.column.$.id;
+                        }));
+                        p.sort = ((sort >= 0) ? ((sortColumns[sort].sortAsc !== false) ? (sort + 1) : (-sort - 1)) : 0);
+                    }
+                    settings.columns.push(p);
+                }
+            }
+            if (flags.includeDeleted !== false) {
+                settings.includeDeleted = this.element.find('.s-IncludeDeletedToggle').hasClass('pressed');
+            }
+            if (flags.filterItems !== false && (this.filterBar != null) && (this.filterBar.get_store() != null)) {
+                settings.filterItems = this.filterBar.get_store().get_items().slice();
+            }
+            if (flags.quickSearch === true) {
+                var qsInput = this.toolbar.element.find('.s-QuickSearchInput').first();
+                if (qsInput.length > 0) {
+                    var qsWidget = qsInput.tryGetWidget(Serenity.QuickSearchInput);
+                    if (qsWidget != null) {
+                        settings.quickSearchField = qsWidget.get_field();
+                        settings.quickSearchText = qsWidget.element.val();
+                    }
+                }
+            }
+            if (flags.quickFilters !== false && (this.quickFiltersDiv != null) && this.quickFiltersDiv.length > 0) {
+                settings.quickFilters = {};
+                this.quickFiltersDiv.find('.quick-filter-item').each(function (i, e) {
+                    var field = $(e).data('qffield');
+                    if (Q.isEmptyOrNull(field)) {
+                        return;
+                    }
+                    var widget = $('#' + _this.uniqueName + '_QuickFilter_' + field).tryGetWidget(Serenity.Widget);
+                    if (widget == null) {
+                        return;
+                    }
+                    var saveState = $(e).data('qfsavestate');
+                    var state = (saveState != null) ? saveState(widget) : Serenity.EditorUtils.getValue(widget);
+                    settings.quickFilters[field] = state;
+                    if (flags.quickFilterText === true && $(e).hasClass('quick-filter-active')) {
+                        var getDisplayText = $(e).data('qfdisplaytext');
+                        var filterLabel = $(e).find('.quick-filter-label').text();
+                        var displayText;
+                        if (getDisplayText != null) {
+                            displayText = getDisplayText(widget, filterLabel);
+                        }
+                        else {
+                            displayText = filterLabel + ' = ' + Serenity.EditorUtils.getDisplayText(widget);
+                        }
+                        if (!Q.isEmptyOrNull(displayText)) {
+                            if (!Q.isEmptyOrNull(settings.quickFilterText)) {
+                                settings.quickFilterText += ' ' + Q.coalesce(Q.tryGetText('Controls.FilterPanel.And'), 'and') + ' ';
+                                settings.quickFilterText += displayText;
+                            }
+                            else {
+                                settings.quickFilterText = displayText;
+                            }
+                        }
+                    }
+                });
+            }
+            return settings;
+        };
+        DataGrid.prototype.getElement = function () {
+            return this.element;
+        };
+        DataGrid.prototype.getGrid = function () {
+            return this.slickGrid;
+        };
+        DataGrid.prototype.getView = function () {
+            return this.view;
+        };
+        DataGrid.prototype.getFilterStore = function () {
+            return (this.filterBar == null) ? null : this.filterBar.get_store();
+        };
+        DataGrid = __decorate([
+            Serenity.Decorators.registerClass('Serenity.DataGrid', [Serenity.IDataGrid])
+        ], DataGrid);
+        return DataGrid;
+    }(Serenity.Widget));
+    Serenity.DataGrid = DataGrid;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var CheckTreeEditor = /** @class */ (function (_super) {
+        __extends(CheckTreeEditor, _super);
+        function CheckTreeEditor(div, opt) {
+            var _this = _super.call(this, div, opt) || this;
+            div.addClass('s-CheckTreeEditor');
+            _this.updateItems();
+            return _this;
+        }
+        CheckTreeEditor.prototype.getIdProperty = function () {
+            return "id";
+        };
+        CheckTreeEditor.prototype.getTreeItems = function () {
+            return [];
+        };
+        CheckTreeEditor.prototype.updateItems = function () {
+            var items = this.getTreeItems();
+            var itemById = {};
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                item.children = [];
+                if (!Q.isEmptyOrNull(item.id)) {
+                    itemById[item.id] = item;
+                }
+                if (!Q.isEmptyOrNull(item.parentId)) {
+                    var parent = itemById[item.parentId];
+                    if (parent != null) {
+                        parent.children.push(item);
+                    }
+                }
+            }
+            this.view.addData({ Entities: items, Skip: 0, Take: 0, TotalCount: items.length });
+            this.updateSelectAll();
+            this.updateFlags();
+        };
+        CheckTreeEditor.prototype.getEditValue = function (property, target) {
+            target[property.name] = this.get_value();
+        };
+        CheckTreeEditor.prototype.setEditValue = function (source, property) {
+            var value = source[property.name];
+            if (Q.isArray(value)) {
+                this.set_value(value);
+            }
+        };
+        CheckTreeEditor.prototype.getButtons = function () {
+            var _this = this;
+            var selectAllText = this.getSelectAllText();
+            if (Q.isEmptyOrNull(selectAllText)) {
+                return null;
+            }
+            var self = this;
+            var buttons = [];
+            buttons.push(Serenity.GridSelectAllButtonHelper.define(function () {
+                return self;
+            }, function (x) {
+                return x.id;
+            }, function (x1) {
+                return x1.isSelected;
+            }, function (x2, v) {
+                if (x2.isSelected !== v) {
+                    x2.isSelected = v;
+                    _this.itemSelectedChanged(x2);
+                }
+            }, null, function () {
+                _this.updateFlags();
+            }));
+            return buttons;
+        };
+        CheckTreeEditor.prototype.itemSelectedChanged = function (item) {
+        };
+        CheckTreeEditor.prototype.getSelectAllText = function () {
+            return Q.coalesce(Q.tryGetText('Controls.CheckTreeEditor.SelectAll'), 'Select All');
+        };
+        CheckTreeEditor.prototype.isThreeStateHierarchy = function () {
+            return false;
+        };
+        CheckTreeEditor.prototype.createSlickGrid = function () {
+            this.element.addClass('slick-no-cell-border').addClass('slick-no-odd-even');
+            var result = _super.prototype.createSlickGrid.call(this);
+            this.element.addClass('slick-hide-header');
+            result.resizeCanvas();
+            return result;
+        };
+        CheckTreeEditor.prototype.onViewFilter = function (item) {
+            if (!_super.prototype.onViewFilter.call(this, item)) {
+                return false;
+            }
+            var items = this.view.getItems();
+            var self = this;
+            return Serenity.SlickTreeHelper.filterCustom(item, function (x) {
+                if (x.parentId == null) {
+                    return null;
+                }
+                if (self.byId == null) {
+                    self.byId = {};
+                    for (var i = 0; i < items.length; i++) {
+                        var o = items[i];
+                        if (o.id != null) {
+                            self.byId[o.id] = o;
+                        }
+                    }
+                }
+                return self.byId[x.parentId];
+            });
+        };
+        CheckTreeEditor.prototype.getInitialCollapse = function () {
+            return false;
+        };
+        CheckTreeEditor.prototype.onViewProcessData = function (response) {
+            response = _super.prototype.onViewProcessData.call(this, response);
+            this.byId = null;
+            Serenity.SlickTreeHelper.setIndents(response.Entities, function (x) {
+                return x.id;
+            }, function (x1) {
+                return x1.parentId;
+            }, this.getInitialCollapse());
+            return response;
+        };
+        CheckTreeEditor.prototype.onClick = function (e, row, cell) {
+            _super.prototype.onClick.call(this, e, row, cell);
+            if (!e.isDefaultPrevented()) {
+                Serenity.SlickTreeHelper.toggleClick(e, row, cell, this.view, function (x) {
+                    return x.id;
+                });
+            }
+            if (e.isDefaultPrevented()) {
+                return;
+            }
+            var target = $(e.target);
+            if (target.hasClass('check-box')) {
+                var checkedOrPartial = target.hasClass('checked') || target.hasClass('partial');
+                var item = this.itemAt(row);
+                var anyChanged = item.isSelected !== !checkedOrPartial;
+                this.view.beginUpdate();
+                try {
+                    if (item.isSelected !== !checkedOrPartial) {
+                        item.isSelected = !checkedOrPartial;
+                        this.view.updateItem(item.id, item);
+                        this.itemSelectedChanged(item);
+                    }
+                    anyChanged = this.setAllSubTreeSelected(item, item.isSelected) || anyChanged;
+                    this.updateSelectAll();
+                    this.updateFlags();
+                }
+                finally {
+                    this.view.endUpdate();
+                }
+                if (anyChanged) {
+                    this.element.triggerHandler('change');
+                }
+            }
+        };
+        CheckTreeEditor.prototype.updateSelectAll = function () {
+            Serenity.GridSelectAllButtonHelper.update(this, function (x) {
+                return x.isSelected;
+            });
+        };
+        CheckTreeEditor.prototype.updateFlags = function () {
+            var view = this.view;
+            var items = view.getItems();
+            var threeState = this.isThreeStateHierarchy();
+            if (!threeState) {
+                return;
+            }
+            view.beginUpdate();
+            try {
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    if (item.children == null || item.children.length === 0) {
+                        var allsel = this.getDescendantsSelected(item);
+                        if (allsel !== item.isAllDescendantsSelected) {
+                            item.isAllDescendantsSelected = allsel;
+                            view.updateItem(item.id, item);
+                        }
+                        continue;
+                    }
+                    var allSelected = this.allDescendantsSelected(item);
+                    var selected = allSelected || this.anyDescendantsSelected(item);
+                    if (allSelected !== item.isAllDescendantsSelected || selected !== item.isSelected) {
+                        var selectedChange = item.isSelected !== selected;
+                        item.isAllDescendantsSelected = allSelected;
+                        item.isSelected = selected;
+                        view.updateItem(item.id, item);
+                        if (selectedChange) {
+                            this.itemSelectedChanged(item);
+                        }
+                    }
+                }
+            }
+            finally {
+                view.endUpdate();
+            }
+        };
+        CheckTreeEditor.prototype.getDescendantsSelected = function (item) {
+            return true;
+        };
+        CheckTreeEditor.prototype.setAllSubTreeSelected = function (item, selected) {
+            var result = false;
+            for (var i = 0; i < item.children.length; i++) {
+                var sub = item.children[i];
+                if (sub.isSelected !== selected) {
+                    result = true;
+                    sub.isSelected = selected;
+                    this.view.updateItem(sub.id, sub);
+                    this.itemSelectedChanged(sub);
+                }
+                if (sub.children.length > 0) {
+                    result = this.setAllSubTreeSelected(sub, selected) || result;
+                }
+            }
+            return result;
+        };
+        CheckTreeEditor.prototype.allItemsSelected = function () {
+            for (var i = 0; i < this.rowCount(); i++) {
+                var row = this.itemAt(i);
+                if (!row.isSelected) {
+                    return false;
+                }
+            }
+            return this.rowCount() > 0;
+        };
+        CheckTreeEditor.prototype.allDescendantsSelected = function (item) {
+            if (item.children.length > 0) {
+                for (var i = 0; i < item.children.length; i++) {
+                    var sub = item.children[i];
+                    if (!sub.isSelected) {
+                        return false;
+                    }
+                    if (!this.allDescendantsSelected(sub)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+        CheckTreeEditor.prototype.anyDescendantsSelected = function (item) {
+            if (item.children.length > 0) {
+                for (var i = 0; i < item.children.length; i++) {
+                    var sub = item.children[i];
+                    if (sub.isSelected) {
+                        return true;
+                    }
+                    if (this.anyDescendantsSelected(sub)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+        CheckTreeEditor.prototype.getColumns = function () {
+            var _this = this;
+            var self = this;
+            var columns = [];
+            columns.push({
+                field: 'text', name: 'Kayıt', width: 80, format: Serenity.SlickFormatting.treeToggle(function () {
+                    return self.view;
+                }, function (x) {
+                    return x.id;
+                }, function (ctx) {
+                    var cls = 'check-box';
+                    var item = ctx.item;
+                    if (item.hideCheckBox) {
+                        return _this.getItemText(ctx);
+                    }
+                    var threeState = _this.isThreeStateHierarchy();
+                    if (item.isSelected) {
+                        if (threeState && !item.isAllDescendantsSelected) {
+                            cls += ' partial';
+                        }
+                        else {
+                            cls += ' checked';
+                        }
+                    }
+                    return '<span class="' + cls + '"></span>' + _this.getItemText(ctx);
+                })
+            });
+            return columns;
+        };
+        CheckTreeEditor.prototype.getItemText = function (ctx) {
+            return Q.htmlEncode(ctx.value);
+        };
+        CheckTreeEditor.prototype.getSlickOptions = function () {
+            var opt = _super.prototype.getSlickOptions.call(this);
+            opt.forceFitColumns = true;
+            return opt;
+        };
+        CheckTreeEditor.prototype.sortItems = function () {
+            if (!this.moveSelectedUp()) {
+                return;
+            }
+            var oldIndexes = {};
+            var list = this.view.getItems();
+            var i = 0;
+            for (var $t1 = 0; $t1 < list.length; $t1++) {
+                var x = list[$t1];
+                oldIndexes[x.id] = i++;
+            }
+            list.sort(function (x1, y) {
+                if (x1.isSelected && !y.isSelected) {
+                    return -1;
+                }
+                if (y.isSelected && !x1.isSelected) {
+                    return 1;
+                }
+                var c = Q.turkishLocaleCompare(x1.text, y.text);
+                if (c !== 0) {
+                    return c;
+                }
+                return ss.compare(oldIndexes[x1.id], oldIndexes[y.id]);
+            });
+            this.view.setItems(list, true);
+        };
+        CheckTreeEditor.prototype.moveSelectedUp = function () {
+            return false;
+        };
+        CheckTreeEditor.prototype.get_value = function () {
+            var list = [];
+            var items = this.view.getItems();
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].isSelected) {
+                    list.push(items[i].id);
+                }
+            }
+            return list;
+        };
+        Object.defineProperty(CheckTreeEditor.prototype, "value", {
+            get: function () {
+                return this.get_value();
+            },
+            set: function (v) {
+                this.set_value(v);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        CheckTreeEditor.prototype.set_value = function (value) {
+            var selected = {};
+            if (value != null) {
+                for (var i = 0; i < value.length; i++) {
+                    selected[value[i]] = true;
+                }
+            }
+            this.view.beginUpdate();
+            try {
+                var items = this.view.getItems();
+                for (var i1 = 0; i1 < items.length; i1++) {
+                    var item = items[i1];
+                    var select = selected[item.id];
+                    if (select !== item.isSelected) {
+                        item.isSelected = select;
+                        this.view.updateItem(item.id, item);
+                    }
+                }
+                this.updateSelectAll();
+                this.updateFlags();
+                this.sortItems();
+            }
+            finally {
+                this.view.endUpdate();
+            }
+        };
+        CheckTreeEditor = __decorate([
+            Serenity.Decorators.registerEditor('Serenity.CheckTreeEditor', [Serenity.IGetEditValue, Serenity.ISetEditValue]),
+            Serenity.Decorators.element("<div/>")
+        ], CheckTreeEditor);
+        return CheckTreeEditor;
+    }(Serenity.DataGrid));
+    Serenity.CheckTreeEditor = CheckTreeEditor;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -6924,5 +8679,178 @@ var Serenity;
         }(Serenity.Select2Editor));
         FilterPanels.OperatorSelect = OperatorSelect;
     })(FilterPanels = Serenity.FilterPanels || (Serenity.FilterPanels = {}));
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var BooleanFiltering = /** @class */ (function (_super) {
+        __extends(BooleanFiltering, _super);
+        function BooleanFiltering() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        BooleanFiltering.prototype.getOperators = function () {
+            return this.appendNullableOperators([
+                { key: Serenity.FilterOperators.isTrue },
+                { key: Serenity.FilterOperators.isFalse }
+            ]);
+        };
+        BooleanFiltering = __decorate([
+            Serenity.Decorators.registerClass('Serenity.BooleanFiltering')
+        ], BooleanFiltering);
+        return BooleanFiltering;
+    }(Serenity.BaseFiltering));
+    Serenity.BooleanFiltering = BooleanFiltering;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var BooleanFormatter = /** @class */ (function () {
+        function BooleanFormatter() {
+        }
+        BooleanFormatter.prototype.format = function (ctx) {
+            if (ctx.value == null) {
+                return '';
+            }
+            var text;
+            if (!!ctx.value) {
+                text = Q.tryGetText(this.trueText);
+                if (text == null) {
+                    text = this.trueText;
+                    if (text == null) {
+                        text = Q.coalesce(Q.tryGetText('Dialogs.YesButton'), 'Yes');
+                    }
+                }
+            }
+            else {
+                text = Q.tryGetText(this.falseText);
+                if (text == null) {
+                    text = this.falseText;
+                    if (text == null) {
+                        text = Q.coalesce(Q.tryGetText('Dialogs.NoButton'), 'No');
+                    }
+                }
+            }
+            return Q.htmlEncode(text);
+        };
+        __decorate([
+            Serenity.Decorators.option()
+        ], BooleanFormatter.prototype, "falseText", void 0);
+        __decorate([
+            Serenity.Decorators.option()
+        ], BooleanFormatter.prototype, "trueText", void 0);
+        BooleanFormatter = __decorate([
+            Serenity.Decorators.registerFormatter('Serenity.BooleanFormatter')
+        ], BooleanFormatter);
+        return BooleanFormatter;
+    }());
+    Serenity.BooleanFormatter = BooleanFormatter;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var CascadedWidgetLink = /** @class */ (function () {
+        function CascadedWidgetLink(parentType, widget, parentChange) {
+            var _this = this;
+            this.parentType = parentType;
+            this.widget = widget;
+            this.parentChange = parentChange;
+            this.bind();
+            this.widget.element.bind('remove.' + widget.uniqueName + 'cwh', function (e) {
+                _this.unbind();
+                _this.widget = null;
+                _this.parentChange = null;
+            });
+        }
+        CascadedWidgetLink.prototype.bind = function () {
+            var _this = this;
+            if (Q.isEmptyOrNull(this._parentID)) {
+                return null;
+            }
+            var parent = Q.findElementWithRelativeId(this.widget.element, this._parentID)
+                .tryGetWidget(this.parentType);
+            if (parent != null) {
+                parent.element.bind('change.' + this.widget.uniqueName, function () {
+                    _this.parentChange(parent);
+                });
+                return parent;
+            }
+            else {
+                Q.notifyError("Can't find cascaded parent element with ID: " + this._parentID + '!', '', null);
+                return null;
+            }
+        };
+        CascadedWidgetLink.prototype.unbind = function () {
+            if (Q.isEmptyOrNull(this._parentID)) {
+                return null;
+            }
+            var parent = Q.findElementWithRelativeId(this.widget.element, this._parentID).tryGetWidget(this.parentType);
+            if (parent != null) {
+                parent.element.unbind('.' + this.widget.uniqueName);
+            }
+            return parent;
+        };
+        CascadedWidgetLink.prototype.get_parentID = function () {
+            return this._parentID;
+        };
+        CascadedWidgetLink.prototype.set_parentID = function (value) {
+            if (this._parentID !== value) {
+                this.unbind();
+                this._parentID = value;
+                this.bind();
+            }
+        };
+        CascadedWidgetLink = __decorate([
+            Serenity.Decorators.registerClass('Serenity.CascadedWidgetLink')
+        ], CascadedWidgetLink);
+        return CascadedWidgetLink;
+    }());
+    Serenity.CascadedWidgetLink = CascadedWidgetLink;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    interface;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var CategoryAttribute = /** @class */ (function () {
+        function CategoryAttribute(category) {
+            this.category = category;
+        }
+        CategoryAttribute = __decorate([
+            Serenity.Decorators.registerClass('Serenity.CategoryAttribute')
+        ], CategoryAttribute);
+        return CategoryAttribute;
+    }());
+    Serenity.CategoryAttribute = CategoryAttribute;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var CheckboxFormatter = /** @class */ (function () {
+        function CheckboxFormatter() {
+        }
+        CheckboxFormatter.prototype.format = function (ctx) {
+            return '<span class="check-box no-float readonly ' + (!!ctx.value ? ' checked' : '') + '"></span>';
+        };
+        CheckboxFormatter = __decorate([
+            Serenity.Decorators.registerFormatter('Serenity.CheckboxFormatter')
+        ], CheckboxFormatter);
+        return CheckboxFormatter;
+    }());
+    Serenity.CheckboxFormatter = CheckboxFormatter;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var CollapsibleAttribute = /** @class */ (function () {
+        function CollapsibleAttribute(value) {
+            this.value = value;
+        }
+        CollapsibleAttribute = __decorate([
+            Serenity.Decorators.registerClass('Serenity.CollapsibleAttribute')
+        ], CollapsibleAttribute);
+        return CollapsibleAttribute;
+    }());
+    Serenity.CollapsibleAttribute = CollapsibleAttribute;
+})(Serenity || (Serenity = {}));
+(function (Serenity) {
+    var CssClassAttribute = /** @class */ (function () {
+        function CssClassAttribute(cssClass) {
+            this.cssClass = cssClass;
+        }
+        CssClassAttribute = __decorate([
+            Serenity.Decorators.registerClass('Serenity.CssClassAttribute')
+        ], CssClassAttribute);
+        return CssClassAttribute;
+    }());
+    Serenity.CssClassAttribute = CssClassAttribute;
 })(Serenity || (Serenity = {}));
 //# sourceMappingURL=Serenity.CoreLib.js.map

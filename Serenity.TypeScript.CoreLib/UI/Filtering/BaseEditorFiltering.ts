@@ -1,6 +1,6 @@
 ﻿namespace Serenity {
 
-    @Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering', [Serenity.IFiltering, Serenity.IQuickFiltering])
+    @Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering')
     export abstract class BaseEditorFiltering<TEditor> extends BaseFiltering {
         constructor(public editorType: any) {
             super();

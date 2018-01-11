@@ -72,3 +72,167 @@ namespace Serenity.FilterPanels {
         }
     }
 }
+
+namespace Serenity {
+    @Serenity.Decorators.registerClass('Serenity.BooleanFiltering')
+    export class BooleanFiltering extends BaseFiltering {
+        getOperators() {
+            return this.appendNullableOperators([
+                { key: Serenity.FilterOperators.isTrue },
+                { key: Serenity.FilterOperators.isFalse }
+            ]);
+        }
+    }
+}
+
+namespace Serenity {
+    @Serenity.Decorators.registerFormatter('Serenity.BooleanFormatter')
+    export class BooleanFormatter implements Slick.Formatter {
+        format(ctx: Slick.FormatterContext) {
+
+            if (ctx.value == null) {
+                return '';
+            }
+
+            var text;
+            if (!!ctx.value) {
+                text = Q.tryGetText(this.trueText);
+                if (text == null) {
+                    text = this.trueText;
+                    if (text == null) {
+                        text = Q.coalesce(Q.tryGetText('Dialogs.YesButton'), 'Yes');
+                    }
+                }
+            }
+            else {
+                text = Q.tryGetText(this.falseText);
+                if (text == null) {
+                    text = this.falseText;
+                    if (text == null) {
+                        text = Q.coalesce(Q.tryGetText('Dialogs.NoButton'), 'No');
+                    }
+                }
+            }
+
+			return Q.htmlEncode(text);
+        }
+
+        @Serenity.Decorators.option()
+        public falseText: string;
+
+        @Serenity.Decorators.option()
+        public trueText: string;
+    }
+}
+
+namespace Serenity {
+    @Serenity.Decorators.registerClass('Serenity.CascadedWidgetLink')
+    export class CascadedWidgetLink<TParent extends Widget<any>> {
+
+        constructor(private parentType: { new(...args: any[]): TParent },
+            private widget: Serenity.Widget<any>,
+            private parentChange: (p1: TParent) => void) {
+            this.bind();
+            this.widget.element.bind('remove.' + (widget as any).uniqueName + 'cwh', e => {
+                this.unbind();
+                this.widget = null;
+                this.parentChange = null;
+            });
+        }
+
+        private _parentID: string;
+
+        bind() {
+
+            if (Q.isEmptyOrNull(this._parentID)) {
+                return null;
+            }
+
+            var parent = Q.findElementWithRelativeId(this.widget.element, this._parentID)
+                .tryGetWidget(this.parentType);
+
+            if (parent != null) {
+                parent.element.bind('change.' + (this.widget as any).uniqueName, () => {
+                    this.parentChange(parent);
+                });
+                return parent;
+            }
+			else {
+                Q.notifyError("Can't find cascaded parent element with ID: " + this._parentID + '!', '', null);
+                return null;
+            }
+        }
+
+        unbind() {
+
+            if (Q.isEmptyOrNull(this._parentID)) {
+                return null;
+            }
+
+			var parent = Q.findElementWithRelativeId(this.widget.element, this._parentID).tryGetWidget(this.parentType);
+
+            if (parent != null) {
+                parent.element.unbind('.' + (this.widget as any).uniqueName);
+            }
+
+			return parent;
+        }
+
+        get_parentID() {
+            return this._parentID;
+        }
+
+        set_parentID(value: string) {
+
+            if (this._parentID !== value) {
+                this.unbind();
+                this._parentID = value;
+                this.bind();
+            }
+        }
+    }
+}
+
+namespace Serenity {
+    public interface 
+}
+
+namespace Serenity {
+
+    @Serenity.Decorators.registerClass('Serenity.CategoryAttribute')
+    export class CategoryAttribute {
+        constructor(public category: string) {
+        }
+    }
+}
+
+namespace Serenity {
+
+    @Serenity.Decorators.registerFormatter('Serenity.CheckboxFormatter')
+    export class CheckboxFormatter implements Slick.Formatter {
+        format(ctx: Slick.FormatterContext) {
+            return '<span class="check-box no-float readonly ' + (!!ctx.value ? ' checked' : '') + '"></span>';
+        }
+    }
+}
+
+namespace Serenity {
+
+    @Serenity.Decorators.registerClass('Serenity.CollapsibleAttribute')
+    export class CollapsibleAttribute {
+        constructor(public value: boolean) {
+        }
+
+        public collapsed: boolean;
+    }
+}
+
+namespace Serenity {
+
+    @Serenity.Decorators.registerClass('Serenity.CssClassAttribute')
+    export class CssClassAttribute {
+        constructor(public cssClass: string) {
+        }
+    }
+}
+

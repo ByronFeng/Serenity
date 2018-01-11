@@ -97,7 +97,6 @@
     <TypeScriptCompile Include="UI\PropertyGrid\IReadOnly.ts" />
     <TypeScriptCompile Include="UI\PropertyGrid\PropertyItem.ts" />
     <TypeScriptCompile Include="UI\Editors\BooleanEditor.ts" />
-    <TypeScriptCompile Include="UI\Editors\CheckTreeEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\DateEditor.ts" />
     <TypeScriptCompile Include="UI\Editors\DateTimeEditor.ts" />
     <TypeScriptCompile Include="UI\Widgets\Select2Editor.ts" />
@@ -152,6 +151,7 @@
     <TypeScriptCompile Include="UI\DataGrid\IInitializeColumn.ts" />
     <TypeScriptCompile Include="UI\DataGrid\DataGrid.ts" />
     <TypeScriptCompile Include="UI\Widgets\EntityGrid.ts" />
+    <TypeScriptCompile Include="UI\Editors\CheckTreeEditor.ts" />
     <TypeScriptCompile Include="UI\Widgets\TemplatedPanel.ts" />
     <TypeScriptCompile Include="UI\Widgets\PropertyPanel.ts" />
     <TypeScriptCompile Include="UI\Dialogs\EntityDialog.ts" />
