@@ -657,7 +657,7 @@ namespace Serenity {
             }
         }
 
-        protected getPagerOptions(): any {
+        protected getPagerOptions(): Slick.PagerOptions {
             return {
                 view: this.view,
                 rowsPerPage: 20,
@@ -793,7 +793,7 @@ namespace Serenity {
                         item.editLinkItemType != null ? item.editLinkItemType : null,
                         item.editLinkIdField != null ? item.editLinkIdField : null,
                         (ss as any).mkdel({ oldFormat: oldFormat }, function(ctx: Slick.FormatterContext) {
-                            if (this.oldFormat.$ !== null) {
+                            if (this.oldFormat.$ != null) {
                                 return this.oldFormat.$(ctx);
                             }
                             return Q.htmlEncode(ctx.value);

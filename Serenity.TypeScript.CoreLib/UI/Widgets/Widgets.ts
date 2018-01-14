@@ -155,20 +155,9 @@
         function registerValidationMethods(): void;
     }
 
-    namespace DialogExtensions {
-        function dialogFlexify(dialog: JQuery): JQuery;
-        function dialogResizable(dialog: JQuery, w?: any, h?: any, mw?: any, mh?: any): JQuery;
-        function dialogMaximizable(dialog: JQuery): JQuery;
-        function dialogCloseOnEnter(dialog: JQuery): JQuery;
-    }
-
     interface DialogButton {
         text: string;
         click: () => void;
-    }
-
-    namespace DialogTypeRegistry {
-        function get(key: string): Function;
     }
 
     class EditorTypeEditor extends SelectEditor {

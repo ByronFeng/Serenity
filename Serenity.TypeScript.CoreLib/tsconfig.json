@@ -44,7 +44,6 @@
     "Q/Q.TypeSystem.ts",
     "Q/Q.Authorization.ts",
     "Q/Q.Router.ts",
-    "Decorators/Attributes.ts",
     "Decorators/Decorators.ts",
     "Services/Criteria.ts",
     "UI/Helpers/SlickHelpers.ts",

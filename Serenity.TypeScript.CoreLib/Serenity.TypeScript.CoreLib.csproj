@@ -77,7 +77,6 @@
     <TypeScriptCompile Include="Q\Q.TypeSystem.ts" />
     <TypeScriptCompile Include="Q\Q.Authorization.ts" />
     <TypeScriptCompile Include="Q\Q.Router.ts" />
-    <TypeScriptCompile Include="Decorators\Attributes.ts" />
     <TypeScriptCompile Include="Decorators\Decorators.ts" />
     <TypeScriptCompile Include="Services\Criteria.ts" />
     <TypeScriptCompile Include="UI\Serenity.Script.UI.ts" />

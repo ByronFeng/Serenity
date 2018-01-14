@@ -126,10 +126,10 @@
     <Compile Include="PropertyGrid\Attributes\DefaultValueAttribute.cs" />
     <Compile Include="PropertyGrid\Attributes\CssClassAttribute.cs" />
     <Compile Include="PropertyGrid\Attributes\DisplayNameAttribute.cs" />
+    <Compile Include="PropertyGrid\Attributes\EditorTypeAttributeBase.cs" />
     <Compile Include="PropertyGrid\Attributes\PlaceholderAttribute.cs" />
     <Compile Include="PropertyGrid\Attributes\EditorOptionAttribute.cs" />
     <Compile Include="PropertyGrid\Attributes\EditorTypeAttribute.cs" />
-    <Compile Include="PropertyGrid\Attributes\EditorTypeAttributeBase.cs" />
     <Compile Include="PropertyGrid\Attributes\InsertableAttribute.cs" />
     <Compile Include="PropertyGrid\Attributes\ReadOnlyAttribute.cs" />
     <Compile Include="PropertyGrid\EditorTypeRegistry.cs" />

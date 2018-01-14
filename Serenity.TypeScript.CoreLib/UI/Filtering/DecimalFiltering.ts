@@ -1,7 +1,15 @@
-﻿declare namespace Serenity {
+﻿namespace Serenity {
 
-    class DecimalFiltering extends BaseEditorFiltering<DecimalEditor> {
-        getOperators(): Serenity.FilterOperator[];
+    @Decorators.registerClass('Serenity.DecimalFiltering')
+    export class DecimalFiltering extends BaseEditorFiltering<DecimalEditor> {
+        constructor() {
+            super(DecimalEditor);
+        }
+
+        getOperators(): Serenity.FilterOperator[] {
+            return this.appendNullableOperators(
+                this.appendComparisonOperators([]));
+        }
     }
 
 }
