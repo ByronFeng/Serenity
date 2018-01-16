@@ -6,5 +6,4 @@
         get_store(): FilterStore;
         set_store(value: FilterStore): void;
     }
-
 }

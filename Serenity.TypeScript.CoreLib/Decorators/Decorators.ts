@@ -1,61 +1,60 @@
-﻿namespace Serenity.Decorators {
+﻿
+namespace Serenity {
 
-    function distinct(arr: any[]) {
-        return arr.filter((item, pos) => arr.indexOf(item) === pos);
-    }
-
-    function merge(arr1: any[], arr2: any[]) {
-        if (!arr1 || !arr2)
-            return (arr1 || arr2 || []).slice();
-
-        return distinct(arr1.concat(arr2));
-    }
-
-    function registerType(target: any, name: string, intf: any[]) {
-        if (name != null) {
-            target.__typeName = name;
-            target.__assembly = ss.__assemblies['App'];
-            target.__assembly.__types[name] = target;
+    export namespace Decorators {
+        function distinct(arr: any[]) {
+            return arr.filter((item, pos) => arr.indexOf(item) === pos);
         }
-        else if (!target.__typeName)
-            target.__register = true;
 
-        if (intf)
-            target.__interfaces = merge(target.__interfaces, intf);
-    }
+        function merge(arr1: any[], arr2: any[]) {
+            if (!arr1 || !arr2)
+                return (arr1 || arr2 || []).slice();
 
-    export function registerClass(nameOrIntf?: string | any[], intf2?: any[]) {
-        return function (target: Function) {
-            if (typeof nameOrIntf == "string")
-                registerType(target, nameOrIntf, intf2);
-            else
-                registerType(target, null, nameOrIntf);
-
-            (target as any).__class = true;
+            return distinct(arr1.concat(arr2));
         }
-    }
 
-    export function registerInterface(nameOrIntf?: string | any[], intf2?: any[]) {
-        return function (target: Function) {
+        function registerType(target: any, name: string, intf: any[]) {
+            if (name != null) {
+                target.__typeName = name;
+                target.__assembly = ss.__assemblies['App'];
+                target.__assembly.__types[name] = target;
+            }
+            else if (!target.__typeName)
+                target.__register = true;
 
-            if (typeof nameOrIntf == "string")
-                registerType(target, nameOrIntf, intf2);
-            else
-                registerType(target, null, nameOrIntf);
-
-            (target as any).__interface = true;
-            (target as any).isAssignableFrom = function (type: any) {
-                return (ss as any).contains((ss as any).getInterfaces(type), this);
-            };
+            if (intf)
+                target.__interfaces = merge(target.__interfaces, intf);
         }
-    }
 
-    export function registerEditor(nameOrIntf?: string | any[], intf2?: any[]) {
-        return registerClass(nameOrIntf, intf2);
-    }
+        export function registerClass(nameOrIntf?: string | any[], intf2?: any[]) {
+            return function (target: Function) {
+                if (typeof nameOrIntf == "string")
+                    registerType(target, nameOrIntf, intf2);
+                else
+                    registerType(target, null, nameOrIntf);
 
-    export function registerFormatter(nameOrIntf: string | any[] = [Serenity.ISlickFormatter], intf2: any[] = [Serenity.ISlickFormatter]) {
-        return registerClass(nameOrIntf, intf2);
+                (target as any).__class = true;
+            }
+        }
+
+        export function registerInterface(nameOrIntf?: string | any[], intf2?: any[]) {
+            return function (target: Function) {
+
+                if (typeof nameOrIntf == "string")
+                    registerType(target, nameOrIntf, intf2);
+                else
+                    registerType(target, null, nameOrIntf);
+
+                (target as any).__interface = true;
+                (target as any).isAssignableFrom = function (type: any) {
+                    return (ss as any).contains((ss as any).getInterfaces(type), this);
+                };
+            }
+        }
+
+        export function registerEditor(nameOrIntf?: string | any[], intf2?: any[]) {
+            return registerClass(nameOrIntf, intf2);
+        }
     }
 }
 
@@ -70,8 +69,12 @@ namespace System.ComponentModel {
 
 namespace Serenity {
 
+    @Decorators.registerInterface('Serenity.ISlickFormatter')
+    export class ISlickFormatter {
+    }
+
     function Attr(name: string) {
-        return Serenity.Decorators.registerClass('Serenity.' + name + 'Attribute')
+        return Decorators.registerClass('Serenity.' + name + 'Attribute')
     }
 
     @Attr('Category')
@@ -125,7 +128,7 @@ namespace Serenity {
         }
     }
 
-    @Serenity.Decorators.registerClass('Serenity.EditorTypeAttributeBase')
+    @Decorators.registerClass('Serenity.EditorTypeAttributeBase')
     export class EditorTypeAttributeBase {
         constructor(public editorType: string) {
         }
@@ -252,6 +255,10 @@ namespace Serenity {
 
 namespace Serenity.Decorators {
 
+    export function registerFormatter(nameOrIntf: string | any[] = [ISlickFormatter], intf2: any[] = [ISlickFormatter]) {
+        return registerClass(nameOrIntf, intf2);
+    }
+
     export function addAttribute(type: any, attr: any) {
         type.__metadata = type.__metadata || {};
         type.__metadata.attr = type.__metadata.attr || [];
@@ -363,7 +370,7 @@ namespace Serenity.Decorators {
                 target.__register = true;
 
             if (enumKey)
-                addAttribute(target, new Serenity.EnumKeyAttribute(enumKey));
+                addAttribute(target, new EnumKeyAttribute(enumKey));
         }
     }
 

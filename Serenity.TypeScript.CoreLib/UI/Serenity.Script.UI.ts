@@ -74,18 +74,6 @@ namespace Serenity.FilterPanels {
 }
 
 namespace Serenity {
-    @Serenity.Decorators.registerClass('Serenity.BooleanFiltering')
-    export class BooleanFiltering extends BaseFiltering {
-        getOperators() {
-            return this.appendNullableOperators([
-                { key: Serenity.FilterOperators.isTrue },
-                { key: Serenity.FilterOperators.isFalse }
-            ]);
-        }
-    }
-}
-
-namespace Serenity {
     @Serenity.Decorators.registerClass('Serenity.CascadedWidgetLink')
     export class CascadedWidgetLink<TParent extends Widget<any>> {
 

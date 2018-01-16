@@ -2,11 +2,6 @@
     import Formatter = Serenity.Decorators.registerFormatter
     import Option = Serenity.Decorators.option
 
-    @Decorators.registerInterface('Serenity.ISlickFormatter')
-    export class ISlickFormatter {
-
-    }
-
     @Formatter('Serenity.BooleanFormatter')
     export class BooleanFormatter implements Slick.Formatter {
         format(ctx: Slick.FormatterContext) {

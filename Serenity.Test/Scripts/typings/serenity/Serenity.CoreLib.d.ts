@@ -702,7 +702,7 @@ declare namespace Q {
     function setEquality(request: Serenity.ListRequest, field: string, value: any): void;
 }
 declare namespace Serenity {
-    type ServiceOptions<TResponse extends Serenity.ServiceResponse> = Q.ServiceOptions<TResponse>;
+    type ServiceOptions<TResponse extends ServiceResponse> = Q.ServiceOptions<TResponse>;
 }
 declare namespace Q {
     function autoFullHeight(element: JQuery): void;
@@ -773,11 +773,12 @@ declare namespace Q.Router {
     function dialog(owner: JQuery, element: JQuery, hash: () => string): void;
     function resolve(hash?: string): void;
 }
-declare namespace Serenity.Decorators {
-    function registerClass(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
-    function registerInterface(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
-    function registerEditor(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
-    function registerFormatter(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+declare namespace Serenity {
+    namespace Decorators {
+        function registerClass(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+        function registerInterface(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+        function registerEditor(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
+    }
 }
 declare namespace System.ComponentModel {
     class DisplayNameAttribute {
@@ -786,6 +787,8 @@ declare namespace System.ComponentModel {
     }
 }
 declare namespace Serenity {
+    class ISlickFormatter {
+    }
     class CategoryAttribute {
         category: string;
         constructor(category: string);
@@ -901,6 +904,7 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity.Decorators {
+    function registerFormatter(nameOrIntf?: string | any[], intf2?: any[]): (target: Function) => void;
     function addAttribute(type: any, attr: any): void;
     function addMemberAttr(type: any, memberName: string, attr: any): void;
     function columnsKey(value: string): (target: Function) => void;
@@ -1689,23 +1693,23 @@ declare namespace Serenity {
         title?: string;
         format?: string;
     }
-}
-declare namespace Serenity.FilterOperators {
-    const isTrue = "true";
-    const isFalse = "false";
-    const contains = "contains";
-    const startsWith = "startswith";
-    const EQ = "eq";
-    const NE = "ne";
-    const GT = "gt";
-    const GE = "ge";
-    const LT = "lt";
-    const LE = "le";
-    const BW = "bw";
-    const IN = "in";
-    const isNull = "isnull";
-    const isNotNull = "isnotnull";
-    const toCriteriaOperator: Q.Dictionary<string>;
+    namespace FilterOperators {
+        const isTrue = "true";
+        const isFalse = "false";
+        const contains = "contains";
+        const startsWith = "startswith";
+        const EQ = "eq";
+        const NE = "ne";
+        const GT = "gt";
+        const GE = "ge";
+        const LT = "lt";
+        const LE = "le";
+        const BW = "bw";
+        const IN = "in";
+        const isNull = "isnull";
+        const isNotNull = "isnotnull";
+        const toCriteriaOperator: Q.Dictionary<string>;
+    }
 }
 declare namespace Serenity {
     interface FilterLine {
@@ -1718,6 +1722,21 @@ declare namespace Serenity {
         criteria?: any[];
         displayText?: string;
         state?: any;
+    }
+}
+declare namespace Serenity {
+    class FilterStore {
+        constructor(fields: any);
+        raiseChanged(): void;
+        add_changed(value: any): void;
+        remove_changed(value: any): void;
+        get_fields(): PropertyItem[];
+        get_fieldByName(): any;
+        get_items(): FilterLine[];
+        get_activeCriteria(): any[];
+        get_displayText(): string;
+        static getCriteriaFor(items: FilterLine[]): any[];
+        static getDisplayTextFor(items: FilterLine[]): string;
     }
 }
 declare namespace Serenity {
@@ -1745,23 +1764,6 @@ declare namespace Serenity {
     }
     class IQuickFiltering {
     }
-}
-declare namespace Serenity {
-    class FilterStore {
-        constructor(fields: any);
-        raiseChanged(): void;
-        add_changed(value: any): void;
-        remove_changed(value: any): void;
-        get_fields(): PropertyItem[];
-        get_fieldByName(): any;
-        get_items(): FilterLine[];
-        get_activeCriteria(): any[];
-        get_displayText(): string;
-        static getCriteriaFor(items: FilterLine[]): any[];
-        static getDisplayTextFor(items: FilterLine[]): string;
-    }
-}
-declare namespace Serenity {
     abstract class BaseFiltering implements IFiltering, IQuickFiltering {
         private field;
         get_field(): PropertyItem;
@@ -1790,8 +1792,6 @@ declare namespace Serenity {
         getEditorText(): any;
         initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
-}
-declare namespace Serenity {
     abstract class BaseEditorFiltering<TEditor extends Widget<any>> extends BaseFiltering {
         editorType: any;
         constructor(editorType: any);
@@ -1806,14 +1806,22 @@ declare namespace Serenity {
         getEditorValue(): any;
         initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
-}
-declare namespace Serenity {
+    class DateFiltering extends BaseEditorFiltering<DateEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+    }
+    class BooleanFiltering extends BaseFiltering {
+        getOperators(): FilterOperator[];
+    }
+    class DateTimeFiltering extends BaseEditorFiltering<DateEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+        getCriteria(): CriteriaWithText;
+    }
     class DecimalFiltering extends BaseEditorFiltering<DecimalEditor> {
         constructor();
         getOperators(): Serenity.FilterOperator[];
     }
-}
-declare namespace Serenity {
     class EditorFiltering extends BaseEditorFiltering<Serenity.Widget<any>> {
         constructor();
         editorType: string;
@@ -1825,6 +1833,25 @@ declare namespace Serenity {
         createEditor(): void;
         protected useIdField(): boolean;
         initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
+    }
+    class EnumFiltering extends BaseEditorFiltering<EnumEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+    }
+    class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+    }
+    class LookupFiltering extends BaseEditorFiltering<LookupEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+        protected useEditor(): boolean;
+        protected useIdField(): boolean;
+        getEditorText(): string;
+    }
+    class StringFiltering extends BaseFiltering {
+        getOperators(): Serenity.FilterOperator[];
+        validateEditorValue(value: string): string;
     }
 }
 declare namespace Serenity {
@@ -1873,8 +1900,6 @@ declare namespace Serenity {
         active?: boolean;
         handled?: boolean;
     }
-}
-declare namespace Serenity {
     interface QuickFilter<TWidget extends Widget<TOptions>, TOptions> {
         field?: string;
         type?: new (element: JQuery, options: TOptions) => TWidget;
@@ -1906,8 +1931,6 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class ISlickFormatter {
-    }
     class BooleanFormatter implements Slick.Formatter {
         format(ctx: Slick.FormatterContext): string;
         falseText: string;
@@ -3152,11 +3175,6 @@ declare namespace Serenity.FilterPanels {
     }
 }
 declare namespace Serenity {
-    class BooleanFiltering extends BaseFiltering {
-        getOperators(): FilterOperator[];
-    }
-}
-declare namespace Serenity {
     class CascadedWidgetLink<TParent extends Widget<any>> {
         private parentType;
         private widget;
@@ -3179,34 +3197,4 @@ declare namespace Serenity.DialogExtensions {
 declare namespace Serenity.DialogTypeRegistry {
     function tryGet(key: string): Function;
     function get(key: string): Function;
-}
-declare namespace Serenity {
-    class DateFiltering extends BaseEditorFiltering<DateEditor> {
-        constructor();
-        getOperators(): FilterOperator[];
-    }
-    class DateTimeFiltering extends BaseEditorFiltering<DateEditor> {
-        constructor();
-        getOperators(): FilterOperator[];
-        getCriteria(): CriteriaWithText;
-    }
-    class EnumFiltering extends BaseEditorFiltering<EnumEditor> {
-        constructor();
-        getOperators(): FilterOperator[];
-    }
-    class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
-        constructor();
-        getOperators(): FilterOperator[];
-    }
-    class LookupFiltering extends BaseEditorFiltering<LookupEditor> {
-        constructor();
-        getOperators(): FilterOperator[];
-        protected useEditor(): boolean;
-        protected useIdField(): boolean;
-        getEditorText(): string;
-    }
-    class StringFiltering extends BaseFiltering {
-        getOperators(): Serenity.FilterOperator[];
-        validateEditorValue(value: string): string;
-    }
 }

@@ -2282,12 +2282,6 @@ var Serenity;
             return registerClass(nameOrIntf, intf2);
         }
         Decorators.registerEditor = registerEditor;
-        function registerFormatter(nameOrIntf, intf2) {
-            if (nameOrIntf === void 0) { nameOrIntf = [Serenity.ISlickFormatter]; }
-            if (intf2 === void 0) { intf2 = [Serenity.ISlickFormatter]; }
-            return registerClass(nameOrIntf, intf2);
-        }
-        Decorators.registerFormatter = registerFormatter;
     })(Decorators = Serenity.Decorators || (Serenity.Decorators = {}));
 })(Serenity || (Serenity = {}));
 var System;
@@ -2307,6 +2301,15 @@ var System;
     })(ComponentModel = System.ComponentModel || (System.ComponentModel = {}));
 })(System || (System = {}));
 (function (Serenity) {
+    var ISlickFormatter = /** @class */ (function () {
+        function ISlickFormatter() {
+        }
+        ISlickFormatter = __decorate([
+            Serenity.Decorators.registerInterface('Serenity.ISlickFormatter')
+        ], ISlickFormatter);
+        return ISlickFormatter;
+    }());
+    Serenity.ISlickFormatter = ISlickFormatter;
     function Attr(name) {
         return Serenity.Decorators.registerClass('Serenity.' + name + 'Attribute');
     }
@@ -2601,6 +2604,12 @@ var System;
 (function (Serenity) {
     var Decorators;
     (function (Decorators) {
+        function registerFormatter(nameOrIntf, intf2) {
+            if (nameOrIntf === void 0) { nameOrIntf = [Serenity.ISlickFormatter]; }
+            if (intf2 === void 0) { intf2 = [Serenity.ISlickFormatter]; }
+            return Decorators.registerClass(nameOrIntf, intf2);
+        }
+        Decorators.registerFormatter = registerFormatter;
         function addAttribute(type, attr) {
             type.__metadata = type.__metadata || {};
             type.__metadata.attr = type.__metadata.attr || [];
@@ -5355,7 +5364,7 @@ var Serenity;
         function IFiltering() {
         }
         IFiltering = __decorate([
-            Serenity.Decorators.registerInterface('Serenity.IQuickFiltering')
+            Serenity.Decorators.registerInterface('Serenity.IFiltering')
         ], IFiltering);
         return IFiltering;
     }());
@@ -5369,9 +5378,8 @@ var Serenity;
         return IQuickFiltering;
     }());
     Serenity.IQuickFiltering = IQuickFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
+    var Operators = Serenity.FilterOperators;
+    var Option = Serenity.Decorators.option;
     var BaseFiltering = /** @class */ (function () {
         function BaseFiltering() {
         }
@@ -5569,11 +5577,14 @@ var Serenity;
             filter.options = Q.deepClone({}, this.get_field().quickFilterParams);
         };
         BaseFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.BaseFiltering', [Serenity.IFiltering, Serenity.IQuickFiltering])
+            Serenity.Decorators.registerClass('Serenity.BaseFiltering', [IFiltering, IQuickFiltering])
         ], BaseFiltering);
         return BaseFiltering;
     }());
     Serenity.BaseFiltering = BaseFiltering;
+    function Filtering(name) {
+        return Serenity.Decorators.registerClass('Serenity.' + name + 'Filtering');
+    }
     var BaseEditorFiltering = /** @class */ (function (_super) {
         __extends(BaseEditorFiltering, _super);
         function BaseEditorFiltering(editorType) {
@@ -5654,19 +5665,11 @@ var Serenity;
             filter.options = Q.deepClone({}, this.getEditorOptions(), this.get_field().quickFilterParams);
         };
         BaseEditorFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering')
+            Filtering('BaseEditor')
         ], BaseEditorFiltering);
         return BaseEditorFiltering;
     }(BaseFiltering));
     Serenity.BaseEditorFiltering = BaseEditorFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
-    var Operators = Serenity.FilterOperators;
-    var Option = Serenity.Decorators.option;
-    function Filtering(name) {
-        return Serenity.Decorators.registerClass('Serenity.' + name + 'Filtering');
-    }
     var DateFiltering = /** @class */ (function (_super) {
         __extends(DateFiltering, _super);
         function DateFiltering() {
@@ -5679,8 +5682,25 @@ var Serenity;
             Filtering('Date')
         ], DateFiltering);
         return DateFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.DateFiltering = DateFiltering;
+    var BooleanFiltering = /** @class */ (function (_super) {
+        __extends(BooleanFiltering, _super);
+        function BooleanFiltering() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        BooleanFiltering.prototype.getOperators = function () {
+            return this.appendNullableOperators([
+                { key: Serenity.FilterOperators.isTrue },
+                { key: Serenity.FilterOperators.isFalse }
+            ]);
+        };
+        BooleanFiltering = __decorate([
+            Filtering('Boolean')
+        ], BooleanFiltering);
+        return BooleanFiltering;
+    }(BaseFiltering));
+    Serenity.BooleanFiltering = BooleanFiltering;
     var DateTimeFiltering = /** @class */ (function (_super) {
         __extends(DateTimeFiltering, _super);
         function DateTimeFiltering() {
@@ -5743,7 +5763,7 @@ var Serenity;
             Filtering('DateTime')
         ], DateTimeFiltering);
         return DateTimeFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.DateTimeFiltering = DateTimeFiltering;
     var DecimalFiltering = /** @class */ (function (_super) {
         __extends(DecimalFiltering, _super);
@@ -5757,7 +5777,7 @@ var Serenity;
             Filtering('Decimal')
         ], DecimalFiltering);
         return DecimalFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.DecimalFiltering = DecimalFiltering;
     var EditorFiltering = /** @class */ (function (_super) {
         __extends(EditorFiltering, _super);
@@ -5830,7 +5850,7 @@ var Serenity;
             Filtering('Editor')
         ], EditorFiltering);
         return EditorFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.EditorFiltering = EditorFiltering;
     var EnumFiltering = /** @class */ (function (_super) {
         __extends(EnumFiltering, _super);
@@ -5845,7 +5865,7 @@ var Serenity;
             Filtering('Enum')
         ], EnumFiltering);
         return EnumFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.EnumFiltering = EnumFiltering;
     var IntegerFiltering = /** @class */ (function (_super) {
         __extends(IntegerFiltering, _super);
@@ -5859,7 +5879,7 @@ var Serenity;
             Filtering('Integer')
         ], IntegerFiltering);
         return IntegerFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.IntegerFiltering = IntegerFiltering;
     var LookupFiltering = /** @class */ (function (_super) {
         __extends(LookupFiltering, _super);
@@ -5887,7 +5907,7 @@ var Serenity;
             Filtering('Lookup')
         ], LookupFiltering);
         return LookupFiltering;
-    }(Serenity.BaseEditorFiltering));
+    }(BaseEditorFiltering));
     Serenity.LookupFiltering = LookupFiltering;
     var StringFiltering = /** @class */ (function (_super) {
         __extends(StringFiltering, _super);
@@ -5909,22 +5929,13 @@ var Serenity;
             Filtering('String')
         ], StringFiltering);
         return StringFiltering;
-    }(Serenity.BaseFiltering));
+    }(BaseFiltering));
     Serenity.StringFiltering = StringFiltering;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
     var Formatter = Serenity.Decorators.registerFormatter;
     var Option = Serenity.Decorators.option;
-    var ISlickFormatter = /** @class */ (function () {
-        function ISlickFormatter() {
-        }
-        ISlickFormatter = __decorate([
-            Serenity.Decorators.registerInterface('Serenity.ISlickFormatter')
-        ], ISlickFormatter);
-        return ISlickFormatter;
-    }());
-    Serenity.ISlickFormatter = ISlickFormatter;
     var BooleanFormatter = /** @class */ (function () {
         function BooleanFormatter() {
         }
@@ -11399,25 +11410,6 @@ var Serenity;
         }(Serenity.Select2Editor));
         FilterPanels.OperatorSelect = OperatorSelect;
     })(FilterPanels = Serenity.FilterPanels || (Serenity.FilterPanels = {}));
-})(Serenity || (Serenity = {}));
-(function (Serenity) {
-    var BooleanFiltering = /** @class */ (function (_super) {
-        __extends(BooleanFiltering, _super);
-        function BooleanFiltering() {
-            return _super !== null && _super.apply(this, arguments) || this;
-        }
-        BooleanFiltering.prototype.getOperators = function () {
-            return this.appendNullableOperators([
-                { key: Serenity.FilterOperators.isTrue },
-                { key: Serenity.FilterOperators.isFalse }
-            ]);
-        };
-        BooleanFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.BooleanFiltering')
-        ], BooleanFiltering);
-        return BooleanFiltering;
-    }(Serenity.BaseFiltering));
-    Serenity.BooleanFiltering = BooleanFiltering;
 })(Serenity || (Serenity = {}));
 (function (Serenity) {
     var CascadedWidgetLink = /** @class */ (function () {
