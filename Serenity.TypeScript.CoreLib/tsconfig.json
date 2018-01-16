@@ -84,7 +84,6 @@
     "UI/Filtering/BaseFiltering.ts",
     "UI/Filtering/BaseEditorFiltering.ts",
     "UI/Filtering/FilteringTypes.ts",
-    "UI/Filtering/DecimalFiltering.ts",
     "UI/Filtering/EditorFiltering.ts",
     "UI/Filtering/FilteringTypeRegistry.ts",
     "UI/Filtering/FilterWidgetBase.ts",
