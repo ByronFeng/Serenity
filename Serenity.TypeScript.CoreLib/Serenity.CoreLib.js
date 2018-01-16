@@ -5285,6 +5285,41 @@ var Serenity;
         var EmailEditor_1;
     }(Serenity.Widget));
     Serenity.EmailEditor = EmailEditor;
+    var EnumEditor = /** @class */ (function (_super) {
+        __extends(EnumEditor, _super);
+        function EnumEditor(hidden, opt) {
+            var _this = _super.call(this, hidden, opt) || this;
+            _this.updateItems();
+            return _this;
+        }
+        EnumEditor.prototype.updateItems = function () {
+            this.clearItems();
+            var enumType = this.options.enumType || Serenity.EnumTypeRegistry.get(this.options.enumKey);
+            var enumKey = this.options.enumKey;
+            if (enumKey == null && enumType != null) {
+                var enumKeyAttr = ss.getAttributes(enumType, Serenity.EnumKeyAttribute, false);
+                if (enumKeyAttr.length > 0) {
+                    enumKey = enumKeyAttr[0].value;
+                }
+            }
+            var values = ss.Enum.getValues(enumType);
+            for (var _i = 0, values_1 = values; _i < values_1.length; _i++) {
+                var x = values_1[_i];
+                var name = ss.Enum.toString(enumType, x);
+                this.addOption(ss.cast(x, ss.Int32).toString(), Q.coalesce(Q.tryGetText('Enums.' + enumKey + '.' + name), name), null, false);
+            }
+        };
+        EnumEditor.prototype.getSelect2Options = function () {
+            var opt = _super.prototype.getSelect2Options.call(this);
+            opt.allowClear = Q.coalesce(this.options.allowClear, true);
+            return opt;
+        };
+        EnumEditor = __decorate([
+            Serenity.Decorators.registerEditor('Serenity.EnumEditor')
+        ], EnumEditor);
+        return EnumEditor;
+    }(Serenity.Select2Editor));
+    Serenity.EnumEditor = EnumEditor;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -6367,6 +6402,9 @@ var Serenity;
             }
             return _this;
         }
+        DataGrid.prototype.attrs = function (attrType) {
+            return ss.getAttributes(ss.getInstanceType(this), attrType, true);
+        };
         DataGrid.prototype.add_submitHandlers = function (action) {
             this.submitHandlers = ss.delegateCombine(this.submitHandlers, action);
         };
@@ -6822,7 +6860,7 @@ var Serenity;
             return false;
         };
         DataGrid.prototype.enableFiltering = function () {
-            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.FilterableAttribute, true);
+            var attr = this.attrs(Serenity.FilterableAttribute);
             return attr.length > 0 && attr[0].value;
         };
         DataGrid.prototype.populateWhenVisible = function () {
@@ -6919,7 +6957,7 @@ var Serenity;
             return Serenity.SlickFormatting.itemLink(itemType, idField, text, cssClass, encode);
         };
         DataGrid.prototype.getColumnsKey = function () {
-            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.ColumnsKeyAttribute, true);
+            var attr = this.attrs(Serenity.ColumnsKeyAttribute);
             if (attr && attr.length > 0) {
                 return attr[0].value;
             }
@@ -6937,7 +6975,7 @@ var Serenity;
             }, null);
         };
         DataGrid.prototype.getPropertyItems = function () {
-            var attr = ss.getAttributes(ss.getInstanceType(this), Serenity.ColumnsKeyAttribute, true);
+            var attr = this.attrs(Serenity.ColumnsKeyAttribute);
             var columnsKey = this.getColumnsKey();
             if (!Q.isEmptyOrNull(columnsKey)) {
                 return Q.getColumns(columnsKey);
@@ -7036,16 +7074,16 @@ var Serenity;
             return this.localTextDbPrefix;
         };
         DataGrid.prototype.getLocalTextPrefix = function () {
-            var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.LocalTextPrefixAttribute, true);
-            if (attributes.length >= 1)
-                return attributes[0].value;
+            var attr = this.attrs(Serenity.LocalTextPrefixAttribute);
+            if (attr.length >= 1)
+                return attr[0].value;
             return '';
         };
         DataGrid.prototype.getIdProperty = function () {
             if (this.idProperty == null) {
-                var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.IdPropertyAttribute, true);
-                if (attributes.length === 1) {
-                    this.idProperty = attributes[0].value;
+                var attr = this.attrs(Serenity.IdPropertyAttribute);
+                if (attr.length === 1) {
+                    this.idProperty = attr[0].value;
                 }
                 else {
                     this.idProperty = 'ID';
@@ -7055,9 +7093,9 @@ var Serenity;
         };
         DataGrid.prototype.getIsActiveProperty = function () {
             if (this.isActiveProperty == null) {
-                var attributes = ss.getAttributes(ss.getInstanceType(this), Serenity.IsActivePropertyAttribute, true);
-                if (attributes.length === 1) {
-                    this.isActiveProperty = attributes[0].value;
+                var attr = this.attrs(Serenity.IsActivePropertyAttribute);
+                if (attr.length === 1) {
+                    this.isActiveProperty = attr[0].value;
                 }
                 else {
                     this.isActiveProperty = '';
@@ -7680,6 +7718,261 @@ var Serenity;
         return DataGrid;
     }(Serenity.Widget));
     Serenity.DataGrid = DataGrid;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var EntityGrid = /** @class */ (function (_super) {
+        __extends(EntityGrid, _super);
+        function EntityGrid(container, options) {
+            var _this = _super.call(this, container, options) || this;
+            _this.element.addClass('route-handler')
+                .on('handleroute.' + _this.uniqueName, function (e, arg) {
+                if (!!arg.handled)
+                    return;
+                if (!!(arg.route === 'new')) {
+                    arg.handled = true;
+                    _this.addButtonClick();
+                    return;
+                }
+                var parts = arg.route.split('/');
+                if (!!(parts.length === 2 && parts[0] === 'edit')) {
+                    arg.handled = true;
+                    _this.editItem(parts[1]);
+                    return;
+                }
+                if (!!(parts.length === 2 && parts[1] === 'new')) {
+                    arg.handled = true;
+                    _this.editItemOfType(ss.cast(parts[0], String), null);
+                    return;
+                }
+                if (!!(parts.length === 3 && parts[1] === 'edit')) {
+                    arg.handled = true;
+                    _this.editItemOfType(ss.cast(parts[0], String), parts[2]);
+                }
+            });
+            return _this;
+        }
+        EntityGrid.prototype.usePager = function () {
+            return true;
+        };
+        EntityGrid.prototype.createToolbarExtensions = function () {
+            this.createIncludeDeletedButton();
+            this.createQuickSearchInput();
+        };
+        EntityGrid.prototype.getInitialTitle = function () {
+            return this.getDisplayName();
+        };
+        EntityGrid.prototype.getLocalTextPrefix = function () {
+            var result = _super.prototype.getLocalTextPrefix.call(this);
+            if (Q.isEmptyOrNull(result)) {
+                return this.getEntityType();
+            }
+            return result;
+        };
+        EntityGrid.prototype.getEntityType = function () {
+            if (this.entityType != null)
+                return this.entityType;
+            var attr = this.attrs(Serenity.EntityTypeAttribute);
+            if (attr.length === 1) {
+                return (this.entityType = attr[0].value);
+            }
+            var name = ss.getTypeFullName(ss.getInstanceType(this));
+            var px = name.indexOf('.');
+            if (px >= 0) {
+                name = name.substring(px + 1);
+            }
+            if (Q.endsWith(name, 'Grid')) {
+                name = name.substr(0, name.length - 4);
+            }
+            else if (Q.endsWith(name, 'SubGrid')) {
+                name = name.substr(0, name.length - 7);
+            }
+            this.entityType = name;
+            return this.entityType;
+        };
+        EntityGrid.prototype.getDisplayName = function () {
+            if (this.displayName != null)
+                return this.displayName;
+            var attr = this.attrs(System.ComponentModel.DisplayNameAttribute);
+            if (attr.length >= 1) {
+                this.displayName = attr[0].displayName;
+                this.displayName = Q.LT.getDefault(this.displayName, this.displayName);
+            }
+            else {
+                this.displayName = Q.tryGetText(this.getLocalTextDbPrefix() + 'EntityPlural');
+                if (this.displayName == null)
+                    this.displayName = this.getEntityType();
+            }
+            return this.displayName;
+        };
+        EntityGrid.prototype.getItemName = function () {
+            if (this.itemName != null)
+                return this.itemName;
+            var attr = this.attrs(Serenity.ItemNameAttribute);
+            if (attr.length >= 1) {
+                this.itemName = attr[0].value;
+                this.itemName = Q.LT.getDefault(this.itemName, this.itemName);
+            }
+            else {
+                this.itemName = Q.tryGetText(this.getLocalTextDbPrefix() + 'EntitySingular');
+                if (this.itemName == null)
+                    this.itemName = this.getEntityType();
+            }
+            return this.itemName;
+        };
+        EntityGrid.prototype.getAddButtonCaption = function () {
+            return Q.format(Q.text('Controls.EntityGrid.NewButton'), this.getItemName());
+        };
+        EntityGrid.prototype.getButtons = function () {
+            var _this = this;
+            var buttons = [];
+            buttons.push({
+                title: this.getAddButtonCaption(),
+                cssClass: 'add-button',
+                hotkey: 'alt+n',
+                onClick: function () {
+                    _this.addButtonClick();
+                }
+            });
+            buttons.push(this.newRefreshButton(true));
+            buttons.push(Serenity.ColumnPickerDialog.createToolButton(this));
+            return buttons;
+        };
+        EntityGrid.prototype.newRefreshButton = function (noText) {
+            var _this = this;
+            return {
+                title: (noText ? null : Q.text('Controls.EntityGrid.RefreshButton')),
+                hint: (noText ? Q.text('Controls.EntityGrid.RefreshButton') : null),
+                cssClass: 'refresh-button',
+                onClick: function () {
+                    _this.refresh();
+                }
+            };
+        };
+        EntityGrid.prototype.addButtonClick = function () {
+            this.editItem(new Object());
+        };
+        EntityGrid.prototype.editItem = function (entityOrId) {
+            var _this = this;
+            this.createEntityDialog(this.getItemType(), function (dlg) {
+                var dialog = ss.safeCast(dlg, Serenity['IEditDialog']);
+                if (dialog != null) {
+                    dialog.load(entityOrId, function () {
+                        dialog.dialogOpen(_this.openDialogsAsPanel);
+                    });
+                    return;
+                }
+                throw new ss.InvalidOperationException(Q.format("{0} doesn't implement IEditDialog!", ss.getTypeFullName(ss.getInstanceType(dlg))));
+            });
+        };
+        EntityGrid.prototype.editItemOfType = function (itemType, entityOrId) {
+            var _this = this;
+            if (itemType === this.getItemType()) {
+                this.editItem(entityOrId);
+                return;
+            }
+            this.createEntityDialog(itemType, function (dlg) {
+                var dialog = ss.safeCast(dlg, Serenity['IEditDialog']);
+                if (dialog != null) {
+                    dialog.load(entityOrId, function () {
+                        return dialog.dialogOpen(_this.openDialogsAsPanel);
+                    });
+                    return;
+                }
+                throw new ss.InvalidOperationException(Q.format("{0} doesn't implement IEditDialog!", ss.getTypeFullName(ss.getInstanceType(dlg))));
+            });
+        };
+        EntityGrid.prototype.getService = function () {
+            if (this.service != null)
+                return this.service;
+            var attr = this.attrs(Serenity.ServiceAttribute);
+            if (attr.length >= 1)
+                this.service = attr[0].value;
+            else
+                this.service = Q.replaceAll(this.getEntityType(), '.', '/');
+            return this.service;
+        };
+        EntityGrid.prototype.getViewOptions = function () {
+            var opt = _super.prototype.getViewOptions.call(this);
+            opt.url = Q.resolveUrl('~/Services/' + this.getService() + '/List');
+            return opt;
+        };
+        EntityGrid.prototype.getItemType = function () {
+            return this.getEntityType();
+        };
+        EntityGrid.prototype.routeDialog = function (itemType, dialog) {
+            var _this = this;
+            Q.Router.dialog(this.element, dialog.element, function () {
+                var hash = '';
+                if (itemType !== _this.getItemType())
+                    hash = itemType + '/';
+                if (!!(dialog != null && dialog.entityId != null))
+                    hash += 'edit/' + dialog.entityId.toString();
+                else
+                    hash += 'new';
+                return hash;
+            });
+        };
+        EntityGrid.prototype.initDialog = function (dialog) {
+            var _this = this;
+            Serenity.SubDialogHelper.bindToDataChange(dialog, this, function (e, dci) {
+                _this.subDialogDataChange();
+            }, true);
+            this.routeDialog(this.getItemType(), dialog);
+        };
+        EntityGrid.prototype.initEntityDialog = function (itemType, dialog) {
+            var _this = this;
+            if (itemType === this.getItemType()) {
+                this.initDialog(dialog);
+                return;
+            }
+            Serenity.SubDialogHelper.bindToDataChange(dialog, this, function (e, dci) {
+                _this.subDialogDataChange();
+            }, true);
+            this.routeDialog(itemType, dialog);
+        };
+        EntityGrid.prototype.createEntityDialog = function (itemType, callback) {
+            var _this = this;
+            var dialogClass = this.getDialogTypeFor(itemType);
+            var dialog = Serenity.Widget.create({
+                type: dialogClass,
+                options: this.getDialogOptionsFor(itemType),
+                init: function (d) {
+                    _this.initEntityDialog(itemType, d);
+                    callback && callback(d);
+                }
+            });
+            return dialog;
+        };
+        EntityGrid.prototype.getDialogOptions = function () {
+            return {};
+        };
+        EntityGrid.prototype.getDialogOptionsFor = function (itemType) {
+            if (itemType === this.getItemType())
+                return this.getDialogOptions();
+            return {};
+        };
+        EntityGrid.prototype.getDialogTypeFor = function (itemType) {
+            if (itemType === this.getItemType()) {
+                return this.getDialogType();
+            }
+            return Serenity.DialogTypeRegistry.get(itemType);
+        };
+        EntityGrid.prototype.getDialogType = function () {
+            if (this.dialogType != null)
+                return this.dialogType;
+            var attr = this.attrs(Serenity.DialogTypeAttribute);
+            if (attr.length >= 1)
+                this.dialogType = attr[0].value;
+            else
+                this.dialogType = Serenity.DialogTypeRegistry.get(this.getEntityType());
+            return this.dialogType;
+        };
+        EntityGrid = __decorate([
+            Serenity.Decorators.registerClass('Serenity.EntityGrid')
+        ], EntityGrid);
+        return EntityGrid;
+    }(Serenity.DataGrid));
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -8401,7 +8694,8 @@ var Serenity;
         };
         EntityDialog.prototype.initLocalizationGridCommon = function (pgOptions) {
             var pgDiv = this.byId('PropertyGrid');
-            var anyLocalizable = Q.any(pgOptions.items, function (x) { return x.localizable === true; });
+            if (!Q.any(pgOptions.items, function (x) { return x.localizable === true; }))
+                return;
             var localGridDiv = $('<div/>')
                 .attr('id', this.idPrefix + 'LocalizationGrid')
                 .hide().insertAfter(pgDiv);
@@ -8504,12 +8798,14 @@ var Serenity;
                 },
                 onSuccess: function (response) {
                     var copy = $.extend(new Object(), _this.get_entity());
-                    for (var _i = 0, _a = Object.keys(response.Localizations); _i < _a.length; _i++) {
-                        var language = _a[_i];
-                        var entity = response.Localizations[language];
-                        for (var _b = 0, _c = Object.keys(entity); _b < _c.length; _b++) {
-                            var key = _c[_b];
-                            copy[language + '$' + key] = entity[key];
+                    if (response.Localizations) {
+                        for (var _i = 0, _a = Object.keys(response.Localizations); _i < _a.length; _i++) {
+                            var language = _a[_i];
+                            var entity = response.Localizations[language];
+                            for (var _b = 0, _c = Object.keys(entity); _b < _c.length; _b++) {
+                                var key = _c[_b];
+                                copy[language + '$' + key] = entity[key];
+                            }
                         }
                     }
                     _this.localizationGrid.load(copy);

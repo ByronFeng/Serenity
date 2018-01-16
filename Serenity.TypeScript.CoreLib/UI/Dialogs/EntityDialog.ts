@@ -160,7 +160,7 @@
         protected onDeleteSuccess(response: DeleteResponse): void {
         }
 
-        private attrs<TAttr>(attrType: { new(...args: any[]): TAttr }): TAttr[] {
+        protected attrs<TAttr>(attrType: { new(...args: any[]): TAttr }): TAttr[] {
             return (ss as any).getAttributes((ss as any).getInstanceType(this), attrType, true);
         }
 
@@ -476,7 +476,8 @@
         protected initLocalizationGridCommon(pgOptions: PropertyGridOptions) {
             var pgDiv = this.byId('PropertyGrid');
 
-            var anyLocalizable = Q.any(pgOptions.items, x => x.localizable === true);
+            if (!Q.any(pgOptions.items, x => x.localizable === true))
+                return;
 
             var localGridDiv = $('<div/>')
                 .attr('id', this.idPrefix + 'LocalizationGrid')
@@ -598,10 +599,12 @@
                 },
                 onSuccess: response => {
                     var copy = $.extend(new Object(), this.get_entity());
-                    for (var language of Object.keys(response.Localizations)) {
-                        var entity = response.Localizations[language];
-                        for (var key of Object.keys(entity)) {
-                            copy[language + '$' + key] = entity[key];
+                    if (response.Localizations) {
+                        for (var language of Object.keys(response.Localizations)) {
+                            var entity = response.Localizations[language];
+                            for (var key of Object.keys(entity)) {
+                                copy[language + '$' + key] = entity[key];
+                            }
                         }
                     }
                     

@@ -1549,6 +1549,16 @@ declare namespace Serenity {
         get_readOnly(): boolean;
         set_readOnly(value: boolean): void;
     }
+    interface EnumEditorOptions {
+        enumKey?: string;
+        enumType?: any;
+        allowClear?: boolean;
+    }
+    class EnumEditor extends Select2Editor<EnumEditorOptions, Select2Item> {
+        constructor(hidden: JQuery, opt: EnumEditorOptions);
+        protected updateItems(): void;
+        protected getSelect2Options(): Select2Options;
+    }
 }
 declare namespace Serenity {
     class GoogleMap extends Widget<GoogleMapOptions> {
@@ -1572,11 +1582,6 @@ declare namespace Serenity {
     class RadioButtonEditor extends Widget<RadioButtonEditorOptions> {
         constructor(input: JQuery, opt: RadioButtonEditorOptions);
         value: string;
-    }
-    interface EnumEditorOptions {
-        enumKey?: string;
-        enumType?: any;
-        allowClear?: boolean;
     }
     interface HtmlContentEditorOptions {
         cols?: any;
@@ -1649,10 +1654,6 @@ declare namespace Serenity {
         formatValue(): void;
         getFormattedValue(): string;
         value: string;
-    }
-    class EnumEditor extends Select2Editor<EnumEditorOptions, Select2Item> {
-        constructor(hidden: JQuery, opt: EnumEditorOptions);
-        updateItems(): void;
     }
     class Select2AjaxEditor<TOptions, TItem> extends Widget<TOptions> {
         pageSize: number;
@@ -2368,6 +2369,9 @@ declare namespace Serenity {
         static defaultHeaderHeight: number;
         static defaultPersistanceStorage: SettingStorage;
         constructor(container: JQuery, options?: TOptions);
+        protected attrs<TAttr>(attrType: {
+            new (...args: any[]): TAttr;
+        }): TAttr[];
         protected add_submitHandlers(action: () => void): void;
         protected remove_submitHandlers(action: () => void): void;
         protected layout(): void;
@@ -2475,26 +2479,6 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class EntityGrid<TItem, TOptions> extends DataGrid<TItem, TOptions> {
-        constructor(container: JQuery, options?: TOptions);
-        protected addButtonClick(): void;
-        protected createEntityDialog(itemType: string, callback?: (dlg: Widget<any>) => void): Widget<any>;
-        protected getDialogOptions(): any;
-        protected getDialogOptionsFor(itemType: string): any;
-        protected getDialogType(): {
-            new (...args: any[]): Widget<any>;
-        };
-        protected getDialogTypeFor(itemType: string): {
-            new (...args: any[]): Widget<any>;
-        };
-        protected getDisplayName(): string;
-        protected getItemName(): string;
-        protected getEntityType(): string;
-        protected getService(): string;
-        protected initDialog(dialog: Widget<any>): void;
-        protected initEntityDialog(itemType: string, dialog: Widget<any>): void;
-        protected newRefreshButton(noText?: boolean): ToolButton;
-    }
 }
 declare namespace Serenity {
     class CheckTreeEditor<TItem extends CheckTreeItem<any>, TOptions> extends DataGrid<TItem, TOptions> implements IGetEditValue, ISetEditValue {
@@ -2604,7 +2588,9 @@ declare namespace Serenity {
         protected deleteHandler(options: ServiceOptions<DeleteResponse>, callback: (response: DeleteResponse) => void): void;
         protected doDelete(callback: (response: DeleteResponse) => void): void;
         protected onDeleteSuccess(response: DeleteResponse): void;
-        private attrs<TAttr>(attrType);
+        protected attrs<TAttr>(attrType: {
+            new (...args: any[]): TAttr;
+        }): TAttr[];
         private entityType;
         protected getEntityType(): string;
         private formKey;
