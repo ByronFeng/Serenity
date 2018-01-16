@@ -5934,8 +5934,10 @@ var Serenity;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
-    var Formatter = Serenity.Decorators.registerFormatter;
     var Option = Serenity.Decorators.option;
+    function Formatter(name, intf) {
+        return Serenity.Decorators.registerClass('Serenity.' + name + 'Formatter');
+    }
     var BooleanFormatter = /** @class */ (function () {
         function BooleanFormatter() {
         }
@@ -5971,7 +5973,7 @@ var Serenity;
             Serenity.Decorators.option()
         ], BooleanFormatter.prototype, "trueText", void 0);
         BooleanFormatter = __decorate([
-            Formatter('Serenity.BooleanFormatter')
+            Formatter('Boolean')
         ], BooleanFormatter);
         return BooleanFormatter;
     }());
@@ -5983,7 +5985,7 @@ var Serenity;
             return '<span class="check-box no-float readonly ' + (!!ctx.value ? ' checked' : '') + '"></span>';
         };
         CheckboxFormatter = __decorate([
-            Formatter('Serenity.CheckboxFormatter')
+            Formatter('Checkbox')
         ], CheckboxFormatter);
         return CheckboxFormatter;
     }());
@@ -6025,7 +6027,7 @@ var Serenity;
             Option()
         ], DateFormatter.prototype, "get_displayFormat", null);
         DateFormatter = DateFormatter_1 = __decorate([
-            Formatter('Serenity.DateFormatter')
+            Formatter('Date')
         ], DateFormatter);
         return DateFormatter;
         var DateFormatter_1;
@@ -6039,11 +6041,268 @@ var Serenity;
             return _this;
         }
         DateTimeFormatter = __decorate([
-            Formatter('Serenity.DateTimeFormatter')
+            Formatter('DateTime')
         ], DateTimeFormatter);
         return DateTimeFormatter;
     }(DateFormatter));
     Serenity.DateTimeFormatter = DateTimeFormatter;
+    var EnumFormatter = /** @class */ (function () {
+        function EnumFormatter() {
+        }
+        EnumFormatter_1 = EnumFormatter;
+        EnumFormatter.prototype.format = function (ctx) {
+            return EnumFormatter_1.format(Serenity.EnumTypeRegistry.get(this.enumKey), ctx.value);
+        };
+        EnumFormatter.format = function (enumType, value) {
+            if (value == null) {
+                return '';
+            }
+            var name;
+            try {
+                name = ss.Enum.toString(enumType, value);
+            }
+            catch (e) {
+                e = ss.Exception.wrap(e);
+                if (ss.isInstanceOfType(e, ss.ArgumentException)) {
+                    name = value.toString();
+                }
+                else {
+                    throw e;
+                }
+            }
+            var enumKeyAttr = ss.getAttributes(enumType, Serenity.EnumKeyAttribute, false);
+            var enumKey = ((enumKeyAttr.length > 0) ? enumKeyAttr[0].value : ss.getTypeFullName(enumType));
+            return EnumFormatter_1.getText(enumKey, name);
+        };
+        EnumFormatter.getText = function (enumKey, name) {
+            if (Q.isEmptyOrNull(name)) {
+                return '';
+            }
+            return Q.htmlEncode(Q.coalesce(Q.tryGetText('Enums.' + enumKey + '.' + name), name));
+        };
+        EnumFormatter.getName = function (enumType, value) {
+            if (value == null) {
+                return '';
+            }
+            return ss.Enum.toString(enumType, value);
+        };
+        __decorate([
+            Option()
+        ], EnumFormatter.prototype, "enumKey", void 0);
+        EnumFormatter = EnumFormatter_1 = __decorate([
+            Formatter('Enum')
+        ], EnumFormatter);
+        return EnumFormatter;
+        var EnumFormatter_1;
+    }());
+    Serenity.EnumFormatter = EnumFormatter;
+    var FileDownloadFormatter = /** @class */ (function () {
+        function FileDownloadFormatter() {
+        }
+        FileDownloadFormatter_1 = FileDownloadFormatter;
+        FileDownloadFormatter.prototype.format = function (ctx) {
+            var dbFile = ss.safeCast(ctx.value, String);
+            if (Q.isEmptyOrNull(dbFile)) {
+                return '';
+            }
+            var downloadUrl = FileDownloadFormatter_1.dbFileUrl(dbFile);
+            var originalName = (!Q.isEmptyOrNull(this.originalNameProperty) ?
+                ss.safeCast(ctx.item[this.originalNameProperty], String) : null);
+            originalName = Q.coalesce(originalName, '');
+            var text = Q.format(Q.coalesce(this.displayFormat, '{0}'), originalName, dbFile, downloadUrl);
+            return "<a class='file-download-link' target='_blank' href='" +
+                Q.attrEncode(downloadUrl) + "'>" + Q.htmlEncode(text) + '</a>';
+        };
+        FileDownloadFormatter.dbFileUrl = function (filename) {
+            filename = Q.replaceAll(Q.coalesce(filename, ''), '\\', '/');
+            return Q.resolveUrl('~/upload/') + filename;
+        };
+        FileDownloadFormatter.prototype.initializeColumn = function (column) {
+            column.referencedFields = column.referencedFields || [];
+            if (!Q.isEmptyOrNull(this.originalNameProperty)) {
+                column.referencedFields.push(this.originalNameProperty);
+                return;
+            }
+        };
+        __decorate([
+            Option()
+        ], FileDownloadFormatter.prototype, "displayFormat", void 0);
+        __decorate([
+            Option()
+        ], FileDownloadFormatter.prototype, "originalNameProperty", void 0);
+        FileDownloadFormatter = FileDownloadFormatter_1 = __decorate([
+            Formatter('FileDownload', [Serenity.ISlickFormatter, Serenity.IInitializeColumn])
+        ], FileDownloadFormatter);
+        return FileDownloadFormatter;
+        var FileDownloadFormatter_1;
+    }());
+    Serenity.FileDownloadFormatter = FileDownloadFormatter;
+    var MinuteFormatter = /** @class */ (function () {
+        function MinuteFormatter() {
+        }
+        MinuteFormatter_1 = MinuteFormatter;
+        MinuteFormatter.prototype.format = function (ctx) {
+            return MinuteFormatter_1.format(ctx.value);
+        };
+        MinuteFormatter.format = function (value) {
+            var hour = ss.Int32.trunc(Math.floor(value / 60));
+            var minute = value - hour * 60;
+            var hourStr, minuteStr;
+            if (value != null || isNaN(value))
+                return '';
+            if (hour < 10)
+                hourStr = '0' + hour;
+            else
+                hourStr = hour.toString();
+            if (minute < 10)
+                minuteStr = '0' + minute;
+            else
+                minuteStr = minute.toString();
+            return Q.format('{0}:{1}', hourStr, minuteStr);
+        };
+        MinuteFormatter = MinuteFormatter_1 = __decorate([
+            Formatter('Minute')
+        ], MinuteFormatter);
+        return MinuteFormatter;
+        var MinuteFormatter_1;
+    }());
+    Serenity.MinuteFormatter = MinuteFormatter;
+    var NumberFormatter = /** @class */ (function () {
+        function NumberFormatter() {
+        }
+        NumberFormatter_1 = NumberFormatter;
+        NumberFormatter.prototype.format = function (ctx) {
+            return NumberFormatter_1.format(ctx.value, this.displayFormat);
+        };
+        NumberFormatter.format = function (value, format) {
+            format = Q.coalesce(format, '0.##');
+            if (value != null)
+                return '';
+            if (typeof (value) === 'number') {
+                if (isNaN(value))
+                    return '';
+                return Q.htmlEncode(Q.formatNumber(value, format));
+            }
+            var dbl = Q.parseDecimal(value.toString());
+            if (dbl == null)
+                return '';
+            return Q.htmlEncode(value.toString());
+        };
+        __decorate([
+            Option()
+        ], NumberFormatter.prototype, "displayFormat", void 0);
+        NumberFormatter = NumberFormatter_1 = __decorate([
+            Formatter('Number')
+        ], NumberFormatter);
+        return NumberFormatter;
+        var NumberFormatter_1;
+    }());
+    Serenity.NumberFormatter = NumberFormatter;
+    var UrlFormatter = /** @class */ (function () {
+        function UrlFormatter() {
+        }
+        UrlFormatter.prototype.format = function (ctx) {
+            var url = (!Q.isEmptyOrNull(this.urlProperty) ?
+                Q.coalesce(ctx.item[this.urlProperty], '').toString() :
+                Q.coalesce(ctx.value, '').toString());
+            if (Q.isEmptyOrNull(url))
+                return '';
+            if (!Q.isEmptyOrNull(this.urlFormat))
+                url = Q.format(this.urlFormat, url);
+            if (url != null && Q.startsWith(url, '~/'))
+                url = Q.resolveUrl(url);
+            var display = (!Q.isEmptyOrNull(this.displayProperty) ?
+                Q.coalesce(ctx.item[this.displayProperty], '').toString() :
+                Q.coalesce(ctx.value, '').toString());
+            if (!Q.isEmptyOrNull(this.displayFormat))
+                display = Q.format(this.displayFormat, display);
+            var s = "<a href='" + Q.attrEncode(url) + "'";
+            if (!Q.isEmptyOrNull(this.target))
+                s += " target='" + this.target + "'";
+            s += '>' + Q.htmlEncode(display) + '</a>';
+            return s;
+        };
+        UrlFormatter.prototype.initializeColumn = function (column) {
+            column.referencedFields = column.referencedFields || [];
+            if (!Q.isEmptyOrNull(this.displayProperty)) {
+                column.referencedFields.push(this.displayProperty);
+                return;
+            }
+            if (!Q.isEmptyOrNull(this.urlProperty)) {
+                column.referencedFields.push(this.urlProperty);
+                return;
+            }
+        };
+        __decorate([
+            Option()
+        ], UrlFormatter.prototype, "displayProperty", void 0);
+        __decorate([
+            Option()
+        ], UrlFormatter.prototype, "displayFormat", void 0);
+        __decorate([
+            Option()
+        ], UrlFormatter.prototype, "urlProperty", void 0);
+        __decorate([
+            Option()
+        ], UrlFormatter.prototype, "urlFormat", void 0);
+        __decorate([
+            Option()
+        ], UrlFormatter.prototype, "target", void 0);
+        UrlFormatter = __decorate([
+            Formatter('Url', [Serenity.ISlickFormatter, Serenity.IInitializeColumn])
+        ], UrlFormatter);
+        return UrlFormatter;
+    }());
+    Serenity.UrlFormatter = UrlFormatter;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var EnumTypeRegistry;
+    (function (EnumTypeRegistry) {
+        var knownTypes;
+        function tryGet(key) {
+            if (knownTypes == null) {
+                knownTypes = {};
+                for (var _i = 0, _a = ss.getAssemblies(); _i < _a.length; _i++) {
+                    var assembly = _a[_i];
+                    for (var _b = 0, assembly_1 = assembly; _b < assembly_1.length; _b++) {
+                        var type = assembly_1[_b];
+                        if (ss.isEnum(type)) {
+                            var fullName = ss.getTypeFullName(type);
+                            knownTypes[fullName] = type;
+                            var enumKeyAttr = ss.getAttributes(type, Serenity.EnumKeyAttribute, false);
+                            if (enumKeyAttr != null && enumKeyAttr.length > 0) {
+                                knownTypes[enumKeyAttr[0].value] = type;
+                            }
+                            for (var _c = 0, _d = Q.Config.rootNamespaces; _c < _d.length; _c++) {
+                                var k = _d[_c];
+                                if (Q.startsWith(fullName, k + '.')) {
+                                    knownTypes[fullName.substr(k.length + 1)] = type;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (knownTypes[key] == null)
+                return null;
+            return knownTypes[key];
+        }
+        EnumTypeRegistry.tryGet = tryGet;
+        function get(key) {
+            var type = EnumTypeRegistry.tryGet(key);
+            if (type == null) {
+                var message = Q.format("Can't find {0} enum type! If you have recently defined this enum type " +
+                    "in server side code, make sure your project builds successfully and transform T4 templates. " +
+                    "Also make sure that enum is under your project root namespace, and your namespace parts starts " +
+                    "with capital letters, e.g.MyProject.Pascal.Cased namespace", key);
+                Q.notifyError(message, '', null);
+                throw new ss.Exception(message);
+            }
+            return type;
+        }
+        EnumTypeRegistry.get = get;
+    })(EnumTypeRegistry = Serenity.EnumTypeRegistry || (Serenity.EnumTypeRegistry = {}));
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {

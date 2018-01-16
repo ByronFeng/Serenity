@@ -1950,49 +1950,40 @@ declare namespace Serenity {
     class DateTimeFormatter extends DateFormatter {
         constructor();
     }
-}
-declare namespace Serenity {
     class EnumFormatter implements Slick.Formatter {
         format(ctx: Slick.FormatterContext): string;
-        static format(enumType: Function, value: any): string;
+        enumKey: string;
+        static format(enumType: any, value: any): string;
         static getText(enumKey: string, name: string): string;
-        static getText(value: any): string;
-        static getName(value: any): string;
-        get_enumKey(): string;
-        set_enumKey(value: string): void;
+        static getName(enumType: any, value: any): any;
     }
-    class FileDownloadFormatter {
+    class FileDownloadFormatter implements Slick.Formatter, IInitializeColumn {
         format(ctx: Slick.FormatterContext): string;
         static dbFileUrl(filename: string): string;
         initializeColumn(column: Slick.Column): void;
-        get_displayFormat(): string;
-        set_displayFormat(value: string): void;
-        get_originalNameProperty(): string;
-        set_originalNameProperty(value: string): void;
+        displayFormat: string;
+        originalNameProperty: string;
+    }
+    class MinuteFormatter implements Slick.Formatter {
+        format(ctx: Slick.FormatterContext): string;
+        static format(value: number): string;
     }
     class NumberFormatter {
         format(ctx: Slick.FormatterContext): string;
         static format(value: any, format: string): string;
-        get_displayFormat(): string;
-        set_displayFormat(value: string): void;
+        displayFormat: string;
     }
-    class MinuteFormatter implements Slick.Formatter {
+    class UrlFormatter implements Slick.Formatter, IInitializeColumn {
         format(ctx: Slick.FormatterContext): string;
-        static format(value: any): string;
+        initializeColumn(column: Slick.Column): void;
+        displayProperty: string;
+        displayFormat: string;
+        urlProperty: string;
+        urlFormat: string;
+        target: string;
     }
-    class UrlFormatter implements Slick.Formatter {
-        format(ctx: Slick.FormatterContext): string;
-        get_displayProperty(): string;
-        set_displayProperty(value: string): void;
-        get_displayFormat(): string;
-        set_displayFormat(value: string): void;
-        get_urlProperty(): string;
-        set_urlProperty(value: string): void;
-        get_urlFormat(): string;
-        set_urlFormat(value: string): void;
-        get_target(): string;
-        set_target(value: string): void;
-    }
+}
+declare namespace Serenity {
     namespace FormatterTypeRegistry {
         function get(key: string): Function;
         function initialize(): void;
@@ -2019,6 +2010,7 @@ declare namespace Serenity {
 }
 declare namespace Serenity {
     namespace EnumTypeRegistry {
+        function tryGet(key: string): Function;
         function get(key: string): Function;
     }
 }

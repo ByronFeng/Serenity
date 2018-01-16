@@ -1,6 +1,6 @@
 ﻿namespace Serenity {
 
-    interface FilterOperator {
+    export interface FilterOperator {
         key?: string;
         title?: string;
         format?: string;
