@@ -24,19 +24,6 @@
         w(id: string, type: Function): any;
     }
 
-    interface EmailEditorOptions {
-        domain?: string;
-        readOnlyDomain?: boolean;
-    }
-
-    class EmailEditor extends Widget<EmailEditorOptions> {
-        constructor(input: JQuery, opt: EmailEditorOptions);
-        static registerValidationMethods(): void;
-        value: string;
-        get_readOnly(): boolean;
-        set_readOnly(value: boolean): void;
-    }
-
     class PasswordEditor extends StringEditor {
         constructor(input: JQuery);
     }
@@ -160,19 +147,9 @@
         click: () => void;
     }
 
-    class EditorTypeEditor extends SelectEditor {
-        constructor(select: JQuery);
-    }
-
     interface EditorTypeInfo {
         type?: Function;
         displayName?: string;
         optionsType?: Function;
-    }
-
-    namespace EditorTypeRegistry {
-        function get(key: string): Function;
-        function initialize(): void;
-        function reset(): void;
     }
 }

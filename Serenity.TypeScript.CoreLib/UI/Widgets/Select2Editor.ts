@@ -387,7 +387,7 @@ namespace Serenity {
 
     @Serenity.Decorators.registerClass('Serenity.SelectEditor')
     export class SelectEditor extends Select2Editor<SelectEditorOptions, Select2Item> {
-        constructor(hidden: JQuery, opt: SelectEditorOptions) {
+        constructor(hidden: JQuery, opt?: SelectEditorOptions) {
             super(hidden, opt);
             this.updateItems();
         }

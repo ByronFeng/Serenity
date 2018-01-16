@@ -4877,6 +4877,417 @@ var Serenity;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
+    var EditorTypeRegistry;
+    (function (EditorTypeRegistry) {
+        var knownTypes;
+        function get(key) {
+            if (Q.isEmptyOrNull(key)) {
+                throw new ss.ArgumentNullException('key');
+            }
+            initialize();
+            var editorType = knownTypes[key.toLowerCase()];
+            if (editorType == null) {
+                throw new ss.Exception(Q.format("Can't find {0} editor type!", key));
+            }
+            return editorType;
+        }
+        EditorTypeRegistry.get = get;
+        function initialize() {
+            if (knownTypes != null)
+                return;
+            knownTypes = {};
+            var assemblies = ss.getAssemblies();
+            for (var _i = 0, assemblies_1 = assemblies; _i < assemblies_1.length; _i++) {
+                var assembly = assemblies_1[_i];
+                for (var _a = 0, _b = ss.getAssemblyTypes(assembly); _a < _b.length; _a++) {
+                    var type = _b[_a];
+                    if (!(type.prototype instanceof Serenity.Widget)) {
+                        continue;
+                    }
+                    if (ss.isGenericTypeDefinition(type)) {
+                        continue;
+                    }
+                    var fullName = ss.getTypeFullName(type).toLowerCase();
+                    knownTypes[fullName] = type;
+                    var editorAttr = ss.getAttributes(type, Serenity.EditorAttribute, false);
+                    if (editorAttr != null && editorAttr.length > 0) {
+                        var attrKey = editorAttr[0].key;
+                        if (!Q.isEmptyOrNull(attrKey)) {
+                            knownTypes[attrKey.toLowerCase()] = type;
+                        }
+                    }
+                    for (var _c = 0, _d = Q.Config.rootNamespaces; _c < _d.length; _c++) {
+                        var k = _d[_c];
+                        if (Q.startsWith(fullName, k.toLowerCase() + '.')) {
+                            var kx = fullName.substr(k.length + 1).toLowerCase();
+                            if (knownTypes[kx] == null) {
+                                knownTypes[kx] = type;
+                            }
+                        }
+                    }
+                }
+            }
+            setTypeKeysWithoutEditorSuffix();
+        }
+        function reset() {
+            knownTypes = null;
+        }
+        EditorTypeRegistry.reset = reset;
+        function setTypeKeysWithoutEditorSuffix() {
+            var suffix = 'editor';
+            var keys = Object.keys(knownTypes);
+            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                var k = keys_1[_i];
+                if (!Q.endsWith(k, suffix))
+                    continue;
+                var p = k.substr(0, k.length - suffix.length);
+                if (Q.isEmptyOrNull(p))
+                    continue;
+                if (knownTypes[p] != null)
+                    continue;
+                knownTypes[p] = knownTypes[k];
+            }
+        }
+    })(EditorTypeRegistry = Serenity.EditorTypeRegistry || (Serenity.EditorTypeRegistry = {}));
+    var EditorUtils;
+    (function (EditorUtils) {
+        function getDisplayText(editor) {
+            var select2 = editor.element.data('select2');
+            if (select2 != null) {
+                var data = editor.element.select2('data');
+                if (data == null)
+                    return '';
+                return Q.coalesce(data.text, '');
+            }
+            var value = getValue(editor);
+            if (value == null) {
+                return '';
+            }
+            if (typeof value === "string")
+                return value;
+            if (value instanceof Boolean)
+                return (!!value ? Q.coalesce(Q.tryGetText('Controls.FilterPanel.OperatorNames.true'), 'True') :
+                    Q.coalesce(Q.tryGetText('Controls.FilterPanel.OperatorNames.true'), 'False'));
+            return value.toString();
+        }
+        EditorUtils.getDisplayText = getDisplayText;
+        var dummy = { name: '_' };
+        function getValue(editor) {
+            var target = {};
+            saveValue(editor, dummy, target);
+            return target['_'];
+        }
+        EditorUtils.getValue = getValue;
+        function saveValue(editor, item, target) {
+            var getEditValue = ss.safeCast(editor, Serenity.IGetEditValue);
+            if (getEditValue != null) {
+                getEditValue.getEditValue(item, target);
+                return;
+            }
+            var stringValue = ss.safeCast(editor, Serenity.IStringValue);
+            if (stringValue != null) {
+                target[item.name] = stringValue.get_value();
+                return;
+            }
+            var booleanValue = ss.safeCast(editor, Serenity.IBooleanValue);
+            if (booleanValue != null) {
+                target[item.name] = booleanValue.get_value();
+                return;
+            }
+            var doubleValue = ss.safeCast(editor, Serenity.IDoubleValue);
+            if (doubleValue != null) {
+                var value = doubleValue.get_value();
+                target[item.name] = (isNaN(value) ? null : value);
+                return;
+            }
+            if (editor.getEditValue != null) {
+                editor.getEditValue(item, target);
+                return;
+            }
+            if (editor.element.is(':input')) {
+                target[item.name] = editor.element.val();
+                return;
+            }
+        }
+        EditorUtils.saveValue = saveValue;
+        function setValue(editor, value) {
+            var source = { _: value };
+            loadValue(editor, dummy, source);
+        }
+        EditorUtils.setValue = setValue;
+        function loadValue(editor, item, source) {
+            var setEditValue = ss.safeCast(editor, Serenity.ISetEditValue);
+            if (setEditValue != null) {
+                setEditValue.setEditValue(source, item);
+                return;
+            }
+            var stringValue = ss.safeCast(editor, Serenity.IStringValue);
+            if (stringValue != null) {
+                var value = source[item.name];
+                if (value != null) {
+                    value = value.toString();
+                }
+                stringValue.set_value(ss.cast(value, String));
+                return;
+            }
+            var booleanValue = ss.safeCast(editor, Serenity.IBooleanValue);
+            if (booleanValue != null) {
+                var value1 = source[item.name];
+                if (typeof (value1) === 'number') {
+                    booleanValue.set_value(value1 > 0);
+                }
+                else {
+                    booleanValue.set_value(!!value1);
+                }
+                return;
+            }
+            var doubleValue = ss.safeCast(editor, Serenity.IDoubleValue);
+            if (doubleValue != null) {
+                var d = source[item.name];
+                if (!!(d == null || ss.isInstanceOfType(d, String) && Q.isTrimmedEmpty(ss.cast(d, String)))) {
+                    doubleValue.set_value(null);
+                }
+                else if (ss.isInstanceOfType(d, String)) {
+                    doubleValue.set_value(ss.cast(Q.parseDecimal(ss.cast(d, String)), Number));
+                }
+                else if (ss.isInstanceOfType(d, Boolean)) {
+                    doubleValue.set_value((!!d ? 1 : 0));
+                }
+                else {
+                    doubleValue.set_value(ss.cast(d, Number));
+                }
+                return;
+            }
+            if (editor.setEditValue != null) {
+                editor.setEditValue(source, item);
+                return;
+            }
+            if (editor.element.is(':input')) {
+                var v = source[item.name];
+                if (v == null) {
+                    editor.element.val('');
+                }
+                else {
+                    editor.element.val(v);
+                }
+                return;
+            }
+        }
+        EditorUtils.loadValue = loadValue;
+        function setReadonly(elements, isReadOnly) {
+            elements.each(function (index, el) {
+                var elx = $(el);
+                var type = elx.attr('type');
+                if (elx.is('select') || type === 'radio' || type === 'checkbox') {
+                    if (isReadOnly) {
+                        elx.addClass('readonly').attr('disabled', 'disabled');
+                    }
+                    else {
+                        elx.removeClass('readonly').removeAttr('disabled');
+                    }
+                }
+                else if (isReadOnly) {
+                    elx.addClass('readonly').attr('readonly', 'readonly');
+                }
+                else {
+                    elx.removeClass('readonly').removeAttr('readonly');
+                }
+                return true;
+            });
+            return elements;
+        }
+        EditorUtils.setReadonly = setReadonly;
+        function setReadOnly(widget, isReadOnly) {
+            var readOnly = ss.safeCast(widget, Serenity.IReadOnly);
+            if (readOnly != null) {
+                readOnly.set_readOnly(isReadOnly);
+            }
+            else if (widget.element.is(':input')) {
+                setReadonly(widget.element, isReadOnly);
+            }
+        }
+        EditorUtils.setReadOnly = setReadOnly;
+        function setRequired(widget, isRequired) {
+            var req = ss.safeCast(widget, Serenity.IValidateRequired);
+            if (req != null) {
+                req.set_required(isRequired);
+            }
+            else if (widget.element.is(':input')) {
+                widget.element.toggleClass('required', !!isRequired);
+            }
+            var gridField = Serenity.WX.getGridField(widget);
+            var hasSupItem = gridField.find('sup').get().length > 0;
+            if (isRequired && !hasSupItem) {
+                $('<sup>*</sup>').attr('title', Q.text('Controls.PropertyGrid.RequiredHint'))
+                    .prependTo(gridField.find('.caption')[0]);
+            }
+            else if (!isRequired && hasSupItem) {
+                $(gridField.find('sup')[0]).remove();
+            }
+        }
+        EditorUtils.setRequired = setRequired;
+    })(EditorUtils = Serenity.EditorUtils || (Serenity.EditorUtils = {}));
+    var EmailEditor = /** @class */ (function (_super) {
+        __extends(EmailEditor, _super);
+        function EmailEditor(input, opt) {
+            var _this = _super.call(this, input, opt) || this;
+            EmailEditor_1.registerValidationMethods();
+            input.addClass('emailuser').removeClass('flexify');
+            var spanAt = $('<span/>').text('@').addClass('emailat').insertAfter(input);
+            var domain = $('<input type="text"/>').addClass('emaildomain').addClass('flexify').insertAfter(spanAt);
+            domain.bind('blur.' + _this.uniqueName, function () {
+                var validator = domain.closest('form').data('validator');
+                if (validator != null) {
+                    validator.element(input[0]);
+                }
+            });
+            if (!Q.isEmptyOrNull(_this.options.domain)) {
+                domain.val(_this.options.domain);
+            }
+            if (_this.options.readOnlyDomain) {
+                domain.attr('readonly', 'readonly').addClass('disabled').attr('tabindex', '-1');
+            }
+            input.bind('keypress.' + _this.uniqueName, function (e) {
+                if (e.which === 64) {
+                    e.preventDefault();
+                    if (!_this.options.readOnlyDomain) {
+                        domain.focus();
+                        domain.select();
+                    }
+                }
+            });
+            domain.bind('keypress.' + _this.uniqueName, function (e1) {
+                if (e1.which === 64) {
+                    e1.preventDefault();
+                }
+            });
+            if (!_this.options.readOnlyDomain) {
+                input.change(function (e2) { return _this.set_value(input.val()); });
+            }
+            return _this;
+        }
+        EmailEditor_1 = EmailEditor;
+        EmailEditor.registerValidationMethods = function () {
+            if ($.validator.methods['emailuser'] != null)
+                return;
+            $.validator.addMethod('emailuser', function (value, element) {
+                var domain = $(element).nextAll('.emaildomain');
+                if (domain.length > 0 && domain.attr('readonly') == null) {
+                    if (this.optional(element) && this.optional(domain[0])) {
+                        return true;
+                    }
+                    value = value + '@' + domain.val();
+                    if (Q.Config.emailAllowOnlyAscii) {
+                        return (new RegExp("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}" +
+                            "[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"))
+                            .test(value);
+                    }
+                    return (new RegExp("^((([a-z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|" +
+                        "[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])+(\\.([a-z]|\\d|" +
+                        "[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])+)*)|" +
+                        "((\\x22)((((\\x20|\\x09)*(\\x0d\\x0a))?(\\x20|\\x09)+)?(([\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]|" +
+                        "\\x21|[\\x23-\\x5b]|[\\x5d-\\x7e]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])|(\\\\([\\x01-\\x09\\x0b\\x0c\\x0d-\\x7f]|" +
+                        "[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF]))))*(((\\x20|\\x09)*(\\x0d\\x0a))?(\\x20|\\x09)+)?(\\x22)))@((([a-z]|\\d|" +
+                        "[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])|(([a-z]|\\d|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])" +
+                        "([a-z]|\\d|-|\\.|_|~|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])*([a-z]|\\d|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])))\\.)" +
+                        "+(([a-z]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])|(([a-z]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])([a-z]|\\d|-|\\.|_|~|" +
+                        "[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])*([a-z]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])))$", 'i')).test(value);
+                }
+                else {
+                    if (Q.Config.emailAllowOnlyAscii) {
+                        return this.optional(element) || (new RegExp("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$")).test(value);
+                    }
+                    return this.optional(element) || (new RegExp("^((([a-z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])+" +
+                        "(\\.([a-z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF])+)*)|((\\x22)((((\\x20|\\x09)*" +
+                        "(\\x0d\\x0a))?(\\x20|\\x09)+)?(([\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]|\\x21|[\\x23-\\x5b]|[\\x5d-\\x7e]|[\\u00A0-\\uD7FF\\uF900-" +
+                        "\\uFDCF\\uFDF0-\\uFFEF])|(\\\\([\\x01-\\x09\\x0b\\x0c\\x0d-\\x7f]|[\\u00A0-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF]))))*(((\\x20|\\x09)*" +
+                        "(\\x0d\\x0a))?(\\x20|\\x09)+)?(\\x22)))$", 'i')).test(value);
+                }
+            }, Q.text("Validation.Email"));
+        };
+        EmailEditor.prototype.get_value = function () {
+            var domain = this.element.nextAll('.emaildomain');
+            var value = this.element.val();
+            var domainValue = domain.val();
+            if (Q.isEmptyOrNull(value)) {
+                if (this.options.readOnlyDomain || Q.isEmptyOrNull(domainValue)) {
+                    return '';
+                }
+                return '@' + domainValue;
+            }
+            return value + '@' + domainValue;
+        };
+        Object.defineProperty(EmailEditor.prototype, "value", {
+            get: function () {
+                return this.get_value();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        EmailEditor.prototype.set_value = function (value) {
+            var domain = this.element.nextAll('.emaildomain');
+            value = Q.trimToNull(value);
+            if (value == null) {
+                if (!this.options.readOnlyDomain) {
+                    domain.val('');
+                }
+                this.element.val('');
+            }
+            else {
+                var parts = value.split('@');
+                if (parts.length > 1) {
+                    if (!this.options.readOnlyDomain) {
+                        domain.val(parts[1]);
+                        this.element.val(parts[0]);
+                    }
+                    else if (!Q.isEmptyOrNull(this.options.domain)) {
+                        if (parts[1] !== this.options.domain) {
+                            this.element.val(value);
+                        }
+                        else {
+                            this.element.val(parts[0]);
+                        }
+                    }
+                    else {
+                        this.element.val(parts[0]);
+                    }
+                }
+                else {
+                    this.element.val(parts[0]);
+                }
+            }
+        };
+        EmailEditor.prototype.get_readOnly = function () {
+            var domain = this.element.nextAll('.emaildomain');
+            return !(this.element.attr('readonly') == null &&
+                (!this.options.readOnlyDomain || domain.attr('readonly') == null));
+        };
+        EmailEditor.prototype.set_readOnly = function (value) {
+            var domain = this.element.nextAll('.emaildomain');
+            if (value) {
+                this.element.attr('readonly', 'readonly').addClass('readonly');
+                if (!this.options.readOnlyDomain) {
+                    domain.attr('readonly', 'readonly').addClass('readonly');
+                }
+            }
+            else {
+                this.element.removeAttr('readonly').removeClass('readonly');
+                if (!this.options.readOnlyDomain) {
+                    domain.removeAttr('readonly').removeClass('readonly');
+                }
+            }
+        };
+        EmailEditor = EmailEditor_1 = __decorate([
+            Serenity.Decorators.registerEditor('Serenity.EmailEditor', [Serenity.IStringValue, Serenity.IReadOnly]),
+            Serenity.Decorators.element('<input type="text"/>')
+        ], EmailEditor);
+        return EmailEditor;
+        var EmailEditor_1;
+    }(Serenity.Widget));
+    Serenity.EmailEditor = EmailEditor;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
     var FilterOperators;
     (function (FilterOperators) {
         FilterOperators.isTrue = 'true';
@@ -5517,6 +5928,18 @@ var Serenity;
         return DateTimeFormatter;
     }(DateFormatter));
     Serenity.DateTimeFormatter = DateTimeFormatter;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var IValidateRequired = /** @class */ (function () {
+        function IValidateRequired() {
+        }
+        IValidateRequired = __decorate([
+            Serenity.Decorators.registerInterface('Serenity.IValidateRequired')
+        ], IValidateRequired);
+        return IValidateRequired;
+    }());
+    Serenity.IValidateRequired = IValidateRequired;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -7627,6 +8050,829 @@ var Serenity;
         return CheckTreeEditor;
     }(Serenity.DataGrid));
     Serenity.CheckTreeEditor = CheckTreeEditor;
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var EntityDialog = /** @class */ (function (_super) {
+        __extends(EntityDialog, _super);
+        function EntityDialog(opt) {
+            var _this = _super.call(this, opt) || this;
+            if (!_this.isAsyncWidget()) {
+                _this.initPropertyGrid();
+                _this.initLocalizationGrid();
+            }
+            return _this;
+        }
+        EntityDialog.prototype.initializeAsync = function () {
+            var _this = this;
+            return _super.prototype.initializeAsync.call(this)
+                .then(function () { return _this.initPropertyGridAsync(); })
+                .then(function () { return _this.initLocalizationGridAsync(); });
+        };
+        EntityDialog.prototype.destroy = function () {
+            if (this.propertyGrid) {
+                this.propertyGrid.destroy();
+                this.propertyGrid = null;
+            }
+            if (this.localizationGrid) {
+                this.localizationGrid.destroy();
+                this.localizationGrid = null;
+            }
+            this.undeleteButton = null;
+            this.applyChangesButton = null;
+            this.deleteButton = null;
+            this.saveAndCloseButton = null;
+            _super.prototype.destroy.call(this);
+        };
+        EntityDialog.prototype.get_entity = function () {
+            return this.entity;
+        };
+        EntityDialog.prototype.set_entity = function (entity) {
+            this.entity = entity || new Object();
+        };
+        EntityDialog.prototype.get_entityId = function () {
+            return this.entityId;
+        };
+        EntityDialog.prototype.set_entityId = function (value) {
+            this.entityId = value;
+        };
+        EntityDialog.prototype.getEntityNameFieldValue = function () {
+            return Q.coalesce(this.get_entity()[this.getNameProperty()], '').toString();
+        };
+        EntityDialog.prototype.getEntityTitle = function () {
+            if (!this.isEditMode()) {
+                return Q.format(Q.text('Controls.EntityDialog.NewRecordTitle'), this.getEntitySingular());
+            }
+            else {
+                var title = Q.coalesce(this.getEntityNameFieldValue(), '');
+                return Q.format(Q.text('Controls.EntityDialog.EditRecordTitle'), this.getEntitySingular(), (Q.isEmptyOrNull(title) ? '' : (' (' + title + ')')));
+            }
+        };
+        EntityDialog.prototype.updateTitle = function () {
+            this.dialogTitle = this.getEntityTitle();
+        };
+        EntityDialog.prototype.isCloneMode = function () {
+            return false;
+        };
+        EntityDialog.prototype.isEditMode = function () {
+            return this.get_entityId() != null && !this.isCloneMode();
+        };
+        EntityDialog.prototype.isDeleted = function () {
+            if (this.get_entityId() == null) {
+                return false;
+            }
+            var value = this.get_entity()[this.getIsActiveProperty()];
+            if (value == null) {
+                return false;
+            }
+            return value < 0;
+        };
+        EntityDialog.prototype.isNew = function () {
+            return this.get_entityId() == null;
+        };
+        EntityDialog.prototype.isNewOrDeleted = function () {
+            return this.isNew() || this.isDeleted();
+        };
+        EntityDialog.prototype.getDeleteOptions = function (callback) {
+            return {};
+        };
+        EntityDialog.prototype.deleteHandler = function (options, callback) {
+            Q.serviceCall(options);
+        };
+        EntityDialog.prototype.doDelete = function (callback) {
+            var _this = this;
+            var self = this;
+            var request = {
+                EntityId: this.get_entityId()
+            };
+            var baseOptions = {
+                service: this.getService() + '/Delete',
+                request: request,
+                onSuccess: function (response) {
+                    self.onDeleteSuccess(response);
+                    if (callback != null) {
+                        callback(response);
+                    }
+                    self.element.triggerHandler('ondatachange', [{
+                            entityId: request.EntityId,
+                            entity: _this.entity,
+                            type: 'delete'
+                        }]);
+                }
+            };
+            var thisOptions = this.getDeleteOptions(callback);
+            var finalOptions = $.extend(baseOptions, thisOptions);
+            this.deleteHandler(finalOptions, callback);
+        };
+        EntityDialog.prototype.onDeleteSuccess = function (response) {
+        };
+        EntityDialog.prototype.attrs = function (attrType) {
+            return ss.getAttributes(ss.getInstanceType(this), attrType, true);
+        };
+        EntityDialog.prototype.getEntityType = function () {
+            if (this.entityType != null)
+                return this.entityType;
+            var typeAttributes = this.attrs(Serenity.EntityTypeAttribute);
+            if (typeAttributes.length === 1)
+                return (this.entityType = typeAttributes[0].value);
+            // remove global namespace
+            var name = ss.getTypeFullName(ss.getInstanceType(this));
+            var px = name.indexOf('.');
+            if (px >= 0)
+                name = name.substring(px + 1);
+            // don't like this kind of convention, make it obsolete soon...
+            if (Q.endsWith(name, 'Dialog') || Q.endsWith(name, 'Control'))
+                name = name.substr(0, name.length - 6);
+            else if (Q.endsWith(name, 'Panel'))
+                name = name.substr(0, name.length - 5);
+            return (this.entityType = name);
+        };
+        EntityDialog.prototype.getFormKey = function () {
+            if (this.formKey != null)
+                return this.formKey;
+            var attributes = this.attrs(Serenity.FormKeyAttribute);
+            if (attributes.length >= 1)
+                return (this.formKey = attributes[0].value);
+            return (this.formKey = this.getEntityType());
+        };
+        EntityDialog.prototype.getLocalTextDbPrefix = function () {
+            if (this.localTextDbPrefix != null)
+                return this.localTextDbPrefix;
+            this.localTextDbPrefix = Q.coalesce(this.getLocalTextPrefix(), '');
+            if (this.localTextDbPrefix.length > 0 && !Q.endsWith(this.localTextDbPrefix, '.'))
+                this.localTextDbPrefix = 'Db.' + this.localTextDbPrefix + '.';
+            return this.localTextDbPrefix;
+        };
+        EntityDialog.prototype.getLocalTextPrefix = function () {
+            var attributes = this.attrs(Serenity.LocalTextPrefixAttribute);
+            if (attributes.length >= 1)
+                return attributes[0].value;
+            return this.getEntityType();
+        };
+        EntityDialog.prototype.getEntitySingular = function () {
+            if (this.entitySingular != null)
+                return this.entitySingular;
+            var attributes = this.attrs(Serenity.ItemNameAttribute);
+            if (attributes.length >= 1) {
+                this.entitySingular = attributes[0].value;
+                this.entitySingular = Q.LT.getDefault(this.entitySingular, this.entitySingular);
+            }
+            else {
+                var es = Q.tryGetText(this.getLocalTextDbPrefix() + 'EntitySingular');
+                if (es == null)
+                    es = this.getEntityType();
+                this.entitySingular = es;
+            }
+            return this.entitySingular;
+        };
+        EntityDialog.prototype.getNameProperty = function () {
+            if (this.nameProperty != null)
+                return this.nameProperty;
+            var attributes = this.attrs(Serenity.NamePropertyAttribute);
+            if (attributes.length >= 1)
+                this.nameProperty = attributes[0].value;
+            else
+                this.nameProperty = 'Name';
+            return this.nameProperty;
+        };
+        EntityDialog.prototype.getIdProperty = function () {
+            if (this.idProperty != null)
+                return this.idProperty;
+            var attributes = this.attrs(Serenity.IdPropertyAttribute);
+            if (attributes.length >= 1)
+                this.idProperty = attributes[0].value;
+            else
+                this.idProperty = 'ID';
+            return this.idProperty;
+        };
+        EntityDialog.prototype.getIsActiveProperty = function () {
+            if (this.isActiveProperty != null)
+                return this.isActiveProperty;
+            var attributes = this.attrs(Serenity.IsActivePropertyAttribute);
+            if (attributes.length >= 1)
+                this.isActiveProperty = attributes[0].value;
+            else
+                this.isActiveProperty = 'IsActive';
+            return this.isActiveProperty;
+        };
+        EntityDialog.prototype.getService = function () {
+            if (this.service != null)
+                return this.service;
+            var attributes = this.attrs(Serenity.ServiceAttribute);
+            if (attributes.length >= 1)
+                this.service = attributes[0].value;
+            else
+                this.service = Q.replaceAll(this.getEntityType(), '.', '/');
+            return this.service;
+        };
+        EntityDialog.prototype.load = function (entityOrId, done, fail) {
+            var _this = this;
+            var action = function () {
+                if (entityOrId == null) {
+                    _this.loadResponse({});
+                    done && done();
+                    return;
+                }
+                var scriptType = typeof (entityOrId);
+                if (scriptType === 'string' || scriptType === 'number') {
+                    var entityId = entityOrId;
+                    _this.loadById(entityId, function (response) {
+                        if (done)
+                            window.setTimeout(done, 0);
+                    }, null);
+                    return;
+                }
+                var entity = entityOrId || new Object();
+                _this.loadResponse({ Entity: entity });
+                done && done();
+            };
+            if (fail == null) {
+                action();
+                return;
+            }
+            try {
+                action();
+            }
+            catch (ex1) {
+                var ex = ss.Exception.wrap(ex1);
+                fail(ex);
+            }
+        };
+        EntityDialog.prototype.loadNewAndOpenDialog = function (asPanel) {
+            this.loadResponse({});
+            this.dialogOpen(asPanel);
+        };
+        EntityDialog.prototype.loadEntityAndOpenDialog = function (entity, asPanel) {
+            this.loadResponse({ Entity: entity });
+            this.dialogOpen(asPanel);
+        };
+        EntityDialog.prototype.loadResponse = function (data) {
+            data = data || {};
+            this.onLoadingData(data);
+            var entity = data.Entity || new Object();
+            this.beforeLoadEntity(entity);
+            this.loadEntity(entity);
+            this.set_entity(entity);
+            this.afterLoadEntity();
+        };
+        EntityDialog.prototype.loadEntity = function (entity) {
+            var idField = this.getIdProperty();
+            if (idField != null)
+                this.set_entityId(entity[idField]);
+            this.set_entity(entity);
+            if (this.propertyGrid != null) {
+                this.propertyGrid.set_mode((this.isEditMode() ?
+                    2 /* update */ : 1 /* insert */));
+                this.propertyGrid.load(entity);
+            }
+        };
+        EntityDialog.prototype.beforeLoadEntity = function (entity) {
+            this.localizationPendingValue = null;
+            this.localizationLastValue = null;
+        };
+        EntityDialog.prototype.afterLoadEntity = function () {
+            this.updateInterface();
+            this.updateTitle();
+        };
+        EntityDialog.prototype.loadByIdAndOpenDialog = function (entityId, asPanel) {
+            var _this = this;
+            this.loadById(entityId, function (response) { return window.setTimeout(function () { return _this.dialogOpen(asPanel); }, 0); }, function () {
+                if (!_this.element.is(':visible')) {
+                    _this.element.remove();
+                }
+            });
+        };
+        EntityDialog.prototype.onLoadingData = function (data) {
+        };
+        EntityDialog.prototype.getLoadByIdOptions = function (id, callback) {
+            return {};
+        };
+        EntityDialog.prototype.getLoadByIdRequest = function (id) {
+            var request = {};
+            request.EntityId = id;
+            return request;
+        };
+        EntityDialog.prototype.reloadById = function () {
+            this.loadById(this.get_entityId());
+        };
+        EntityDialog.prototype.loadById = function (id, callback, fail) {
+            var _this = this;
+            var baseOptions = {
+                service: this.getService() + '/Retrieve',
+                blockUI: true,
+                request: this.getLoadByIdRequest(id),
+                onSuccess: function (response) {
+                    _this.loadResponse(response);
+                    callback && callback(response);
+                },
+                onCleanup: function () {
+                    if (_this.validator != null) {
+                        Q.validatorAbortHandler(_this.validator);
+                    }
+                }
+            };
+            var thisOptions = this.getLoadByIdOptions(id, callback);
+            var finalOptions = $.extend(baseOptions, thisOptions);
+            this.loadByIdHandler(finalOptions, callback, fail);
+        };
+        EntityDialog.prototype.loadByIdHandler = function (options, callback, fail) {
+            var request = Q.serviceCall(options);
+            fail && request.fail(fail);
+        };
+        EntityDialog.prototype.initLocalizationGrid = function () {
+            var pgDiv = this.byId('PropertyGrid');
+            if (pgDiv.length <= 0) {
+                return;
+            }
+            var pgOptions = this.getPropertyGridOptions();
+            this.initLocalizationGridCommon(pgOptions);
+        };
+        EntityDialog.prototype.initLocalizationGridAsync = function () {
+            var _this = this;
+            return Promise.resolve().then(function () {
+                var pgDiv = _this.byId('PropertyGrid');
+                if (pgDiv.length <= 0) {
+                    return Promise.resolve();
+                }
+                return _this.getPropertyGridOptionsAsync().then(function (pgOptions) {
+                    _this.initLocalizationGridCommon(pgOptions);
+                });
+            });
+        };
+        EntityDialog.prototype.initLocalizationGridCommon = function (pgOptions) {
+            var pgDiv = this.byId('PropertyGrid');
+            var anyLocalizable = Q.any(pgOptions.items, function (x) { return x.localizable === true; });
+            var localGridDiv = $('<div/>')
+                .attr('id', this.idPrefix + 'LocalizationGrid')
+                .hide().insertAfter(pgDiv);
+            pgOptions.idPrefix = this.idPrefix + 'Localization_';
+            var items = [];
+            for (var _i = 0, _a = pgOptions.items; _i < _a.length; _i++) {
+                var item1 = _a[_i];
+                var langs = null;
+                if (item1.localizable === true) {
+                    var copy = $.extend({}, item1);
+                    copy.oneWay = true;
+                    copy.readOnly = true;
+                    copy.required = false;
+                    copy.defaultValue = null;
+                    items.push(copy);
+                    if (langs == null)
+                        langs = this.getLangs();
+                    for (var _b = 0, langs_1 = langs; _b < langs_1.length; _b++) {
+                        var lang = langs_1[_b];
+                        copy = $.extend({}, item1);
+                        copy.name = lang[0] + '$' + copy.name;
+                        copy.title = lang[1];
+                        copy.cssClass = [copy.cssClass, 'translation'].join(' ');
+                        copy.insertable = true;
+                        copy.updatable = true;
+                        copy.oneWay = false;
+                        copy.required = false;
+                        copy.localizable = false;
+                        copy.defaultValue = null;
+                        items.push(copy);
+                    }
+                }
+            }
+            pgOptions.items = items;
+            this.localizationGrid = (new Serenity.PropertyGrid(localGridDiv, pgOptions)).init(null);
+            localGridDiv.addClass('s-LocalizationGrid');
+        };
+        EntityDialog.prototype.isLocalizationMode = function () {
+            return this.localizationButton != null && this.localizationButton.hasClass('pressed');
+        };
+        EntityDialog.prototype.isLocalizationModeAndChanged = function () {
+            if (!this.isLocalizationMode()) {
+                return false;
+            }
+            var newValue = this.getLocalizationGridValue();
+            return $.toJSON(this.localizationLastValue) != $.toJSON(newValue);
+        };
+        EntityDialog.prototype.localizationButtonClick = function () {
+            if (this.isLocalizationMode() && !this.validateForm()) {
+                return;
+            }
+            if (this.isLocalizationModeAndChanged()) {
+                var newValue = this.getLocalizationGridValue();
+                this.localizationLastValue = newValue;
+                this.localizationPendingValue = newValue;
+            }
+            this.localizationButton.toggleClass('pressed');
+            this.updateInterface();
+            if (this.isLocalizationMode()) {
+                this.loadLocalization();
+            }
+        };
+        EntityDialog.prototype.getLanguages = function () {
+            if (Serenity.EntityDialog.defaultLanguageList != null)
+                return Serenity.EntityDialog.defaultLanguageList() || [];
+            return [];
+        };
+        // for compatibility with older getLanguages methods written in Saltaralle
+        EntityDialog.prototype.getLangs = function () {
+            var langsTuple = this.getLanguages();
+            var langs = ss.safeCast(langsTuple, Array);
+            if (langs == null || langs.length === 0 ||
+                langs[0] == null || !Q.isArray(langs[0])) {
+                langs = Array.prototype.slice.call(langsTuple.map(function (x) {
+                    return [x.item1, x.item2];
+                }));
+            }
+            return langs;
+        };
+        EntityDialog.prototype.loadLocalization = function () {
+            var _this = this;
+            if (this.localizationLastValue == null && this.isNew()) {
+                this.localizationGrid.load({});
+                this.setLocalizationGridCurrentValues();
+                this.localizationLastValue = this.getLocalizationGridValue();
+                return;
+            }
+            if (this.localizationLastValue != null) {
+                this.localizationGrid.load(this.localizationLastValue);
+                this.setLocalizationGridCurrentValues();
+                return;
+            }
+            var opt = {
+                service: this.getService() + '/Retrieve',
+                blockUI: true,
+                request: {
+                    EntityId: this.get_entityId(),
+                    ColumnSelection: 'keyOnly',
+                    IncludeColumns: ['Localizations']
+                },
+                onSuccess: function (response) {
+                    var copy = $.extend(new Object(), _this.get_entity());
+                    for (var _i = 0, _a = Object.keys(response.Localizations); _i < _a.length; _i++) {
+                        var language = _a[_i];
+                        var entity = response.Localizations[language];
+                        for (var _b = 0, _c = Object.keys(entity); _b < _c.length; _b++) {
+                            var key = _c[_b];
+                            copy[language + '$' + key] = entity[key];
+                        }
+                    }
+                    _this.localizationGrid.load(copy);
+                    _this.setLocalizationGridCurrentValues();
+                    _this.localizationPendingValue = null;
+                    _this.localizationLastValue = _this.getLocalizationGridValue();
+                }
+            };
+            Q.serviceCall(opt);
+        };
+        EntityDialog.prototype.setLocalizationGridCurrentValues = function () {
+            var _this = this;
+            var valueByName = {};
+            this.localizationGrid.enumerateItems(function (item, widget) {
+                if (item.name.indexOf('$') < 0 && widget.element.is(':input')) {
+                    valueByName[item.name] = _this.byId(item.name).val();
+                    widget.element.val(valueByName[item.name]);
+                }
+            });
+            this.localizationGrid.enumerateItems(function (item1, widget1) {
+                var idx = item1.name.indexOf('$');
+                if (idx >= 0 && widget1.element.is(':input')) {
+                    var hint = valueByName[item1.name.substr(idx + 1)];
+                    if (hint != null && hint.length > 0) {
+                        widget1.element.attr('title', hint).attr('placeholder', hint);
+                    }
+                }
+            });
+        };
+        EntityDialog.prototype.getLocalizationGridValue = function () {
+            var value = {};
+            this.localizationGrid.save(value);
+            for (var _i = 0, _a = Object.keys(value); _i < _a.length; _i++) {
+                var k = _a[_i];
+                if (k.indexOf('$') < 0) {
+                    delete value[k];
+                }
+            }
+            return value;
+        };
+        EntityDialog.prototype.getPendingLocalizations = function () {
+            if (this.localizationPendingValue == null) {
+                return null;
+            }
+            var result = {};
+            var idField = this.getIdProperty();
+            var langs = this.getLangs();
+            for (var _i = 0, langs_2 = langs; _i < langs_2.length; _i++) {
+                var pair = langs_2[_i];
+                var language = pair[0];
+                var entity = {};
+                if (idField != null) {
+                    entity[idField] = this.get_entityId();
+                }
+                var prefix = language + '$';
+                for (var _a = 0, _b = Object.keys(this.localizationPendingValue); _a < _b.length; _a++) {
+                    var k = _b[_a];
+                    if (Q.startsWith(k, prefix))
+                        entity[k.substr(prefix.length)] = this.localizationPendingValue[k];
+                }
+                result[language] = entity;
+            }
+            return result;
+        };
+        EntityDialog.prototype.initPropertyGrid = function () {
+            var pgDiv = this.byId('PropertyGrid');
+            if (pgDiv.length <= 0) {
+                return;
+            }
+            var pgOptions = this.getPropertyGridOptions();
+            this.propertyGrid = (new Serenity.PropertyGrid(pgDiv, pgOptions)).init(null);
+            if (this.element.closest('.ui-dialog').hasClass('s-Flexify')) {
+                this.propertyGrid.element.children('.categories').flexHeightOnly(1);
+            }
+        };
+        EntityDialog.prototype.initPropertyGridAsync = function () {
+            var _this = this;
+            return Promise.resolve().then(function () {
+                var pgDiv = _this.byId('PropertyGrid');
+                if (pgDiv.length <= 0) {
+                    return Promise.resolve();
+                }
+                return _this.getPropertyGridOptionsAsync().then(function (pgOptions) {
+                    _this.propertyGrid = new Serenity.PropertyGrid(pgDiv, pgOptions);
+                    if (_this.element.closest('.ui-dialog').hasClass('s-Flexify'))
+                        _this.propertyGrid.element.children('.categories').flexHeightOnly(1);
+                    return _this.propertyGrid.init();
+                });
+            });
+        };
+        EntityDialog.prototype.getPropertyItems = function () {
+            var formKey = this.getFormKey();
+            return Q.getForm(formKey);
+        };
+        EntityDialog.prototype.getPropertyGridOptions = function () {
+            return {
+                idPrefix: this.idPrefix,
+                items: this.getPropertyItems(),
+                mode: 1 /* insert */,
+                localTextPrefix: 'Forms.' + this.getFormKey() + '.'
+            };
+        };
+        EntityDialog.prototype.getPropertyGridOptionsAsync = function () {
+            var _this = this;
+            return this.getPropertyItemsAsync().then(function (propertyItems) {
+                return {
+                    idPrefix: _this.idPrefix,
+                    items: propertyItems,
+                    mode: 1,
+                    localTextPrefix: 'Forms.' + _this.getFormKey() + '.'
+                };
+            });
+        };
+        EntityDialog.prototype.getPropertyItemsAsync = function () {
+            var _this = this;
+            return Promise.resolve().then(function () {
+                var formKey = _this.getFormKey();
+                return Q.getFormAsync(formKey);
+            });
+        };
+        EntityDialog.prototype.validateBeforeSave = function () {
+            return true;
+        };
+        EntityDialog.prototype.getSaveOptions = function (callback) {
+            var _this = this;
+            var opt = {};
+            opt.service = this.getService() + '/' + (this.isEditMode() ? 'Update' : 'Create'),
+                opt.onSuccess = function (response) {
+                    _this.onSaveSuccess(response);
+                    callback && callback(response);
+                    var typ = (_this.isEditMode() ? 'update' : 'create');
+                    var ent = opt.request == null ? null : opt.request.Entity;
+                    var eid = _this.isEditMode() ? _this.get_entityId() :
+                        (response == null ? null : response.EntityId);
+                    var dci = {
+                        type: typ,
+                        entity: ent,
+                        entityId: eid
+                    };
+                    _this.element.triggerHandler('ondatachange', [dci]);
+                };
+            opt.onCleanup = function () {
+                _this.validator && Q.validatorAbortHandler(_this.validator);
+            };
+            opt.request = this.getSaveRequest();
+            return opt;
+        };
+        EntityDialog.prototype.getSaveEntity = function () {
+            var entity = new Object();
+            if (this.propertyGrid != null) {
+                this.propertyGrid.save(entity);
+            }
+            if (this.isEditMode()) {
+                var idField = this.getIdProperty();
+                if (idField != null && entity[idField] == null) {
+                    entity[idField] = this.get_entityId();
+                }
+            }
+            return entity;
+        };
+        EntityDialog.prototype.getSaveRequest = function () {
+            var entity = this.getSaveEntity();
+            var req = {};
+            req.Entity = entity;
+            if (this.isEditMode()) {
+                var idField = this.getIdProperty();
+                if (idField != null) {
+                    req.EntityId = this.get_entityId();
+                }
+            }
+            if (this.localizationPendingValue != null) {
+                req.Localizations = this.getPendingLocalizations();
+            }
+            return req;
+        };
+        EntityDialog.prototype.onSaveSuccess = function (response) {
+        };
+        EntityDialog.prototype.save_submitHandler = function (callback) {
+            var options = this.getSaveOptions(callback);
+            this.saveHandler(options, callback);
+        };
+        EntityDialog.prototype.save = function (callback) {
+            var _this = this;
+            return Serenity.ValidationHelper.submit(this.byId('Form'), function () { return _this.validateBeforeSave(); }, function () { return _this.save_submitHandler(callback); });
+        };
+        EntityDialog.prototype.saveHandler = function (options, callback) {
+            Q.serviceCall(options);
+        };
+        EntityDialog.prototype.initToolbar = function () {
+            _super.prototype.initToolbar.call(this);
+            if (!this.toolbar)
+                return;
+            this.saveAndCloseButton = this.toolbar.findButton('save-and-close-button');
+            this.applyChangesButton = this.toolbar.findButton('apply-changes-button');
+            this.deleteButton = this.toolbar.findButton('delete-button');
+            this.undeleteButton = this.toolbar.findButton('undo-delete-button');
+            this.cloneButton = this.toolbar.findButton('clone-button');
+            this.localizationButton = this.toolbar.findButton('localization-button');
+        };
+        EntityDialog.prototype.showSaveSuccessMessage = function (response) {
+            Q.notifySuccess(Q.text('Controls.EntityDialog.SaveSuccessMessage'), '', null);
+        };
+        EntityDialog.prototype.getToolbarButtons = function () {
+            var _this = this;
+            var list = [];
+            list.push({
+                title: Q.text('Controls.EntityDialog.SaveButton'),
+                cssClass: 'save-and-close-button',
+                hotkey: 'alt+s',
+                onClick: function () {
+                    _this.save(function (response) {
+                        _this.dialogClose();
+                    });
+                }
+            });
+            list.push({
+                title: '',
+                hint: Q.text('Controls.EntityDialog.ApplyChangesButton'),
+                cssClass: 'apply-changes-button',
+                hotkey: 'alt+a',
+                onClick: function () {
+                    _this.save(function (response1) {
+                        if (_this.isEditMode()) {
+                            var id1 = response1.EntityId;
+                            if (id1 == null) {
+                                id1 = _this.get_entityId();
+                            }
+                            _this.loadById(id1);
+                        }
+                        else {
+                            _this.loadById(response1.EntityId);
+                        }
+                        _this.showSaveSuccessMessage(response1);
+                    });
+                }
+            });
+            list.push({
+                title: Q.text('Controls.EntityDialog.DeleteButton'),
+                cssClass: 'delete-button',
+                hotkey: 'alt+x',
+                onClick: function () {
+                    Q.confirm(Q.text('Controls.EntityDialog.DeleteConfirmation'), function () {
+                        _this.doDelete(function () { return _this.dialogClose(); });
+                    });
+                }
+            });
+            list.push({
+                title: Q.text('Controls.EntityDialog.UndeleteButton'),
+                cssClass: 'undo-delete-button',
+                onClick: function () {
+                    if (_this.isDeleted()) {
+                        Q.confirm(Q.text('Controls.EntityDialog.UndeleteConfirmation'), function () {
+                            _this.undelete(function () { return _this.loadById(_this.get_entityId()); });
+                        });
+                    }
+                }
+            });
+            list.push({
+                title: Q.text('Controls.EntityDialog.LocalizationButton'),
+                cssClass: 'localization-button',
+                onClick: function () { return _this.localizationButtonClick(); }
+            });
+            list.push({
+                title: Q.text('Controls.EntityDialog.CloneButton'),
+                cssClass: 'clone-button',
+                onClick: function () {
+                    if (!_this.isEditMode()) {
+                        return;
+                    }
+                    var cloneEntity = _this.getCloningEntity();
+                    Serenity.Widget.create({
+                        type: ss.getInstanceType(_this),
+                        init: function (w) { return Serenity.SubDialogHelper.bubbleDataChange(Serenity.SubDialogHelper.cascade(w, _this.element), _this, true)
+                            .loadEntityAndOpenDialog(cloneEntity, null); }
+                    });
+                }
+            });
+            return list;
+        };
+        EntityDialog.prototype.getCloningEntity = function () {
+            var clone = new Object();
+            clone = $.extend(clone, this.get_entity());
+            var idField = this.getIdProperty();
+            if (!Q.isEmptyOrNull(idField)) {
+                delete clone[idField];
+            }
+            var isActiveField = this.getIsActiveProperty();
+            if (!Q.isEmptyOrNull(isActiveField)) {
+                delete clone[isActiveField];
+            }
+            return clone;
+        };
+        EntityDialog.prototype.updateInterface = function () {
+            var isDeleted = this.isDeleted();
+            var isLocalizationMode = this.isLocalizationMode();
+            if (this.tabs != null) {
+                Serenity.TabsExtensions.setDisabled(this.tabs, 'Log', this.isNewOrDeleted());
+            }
+            if (this.propertyGrid != null) {
+                this.propertyGrid.element.toggle(!isLocalizationMode);
+            }
+            if (this.localizationGrid != null) {
+                this.localizationGrid.element.toggle(isLocalizationMode);
+            }
+            if (this.localizationButton != null) {
+                this.localizationButton.toggle(this.localizationGrid != null);
+                this.localizationButton.find('.button-inner')
+                    .text((this.isLocalizationMode() ?
+                    Q.text('Controls.EntityDialog.LocalizationBack') :
+                    Q.text('Controls.EntityDialog.LocalizationButton')));
+            }
+            if (isLocalizationMode) {
+                if (this.toolbar != null)
+                    this.toolbar.findButton('tool-button')
+                        .not('.localization-hidden')
+                        .addClass('.localization-hidden').hide();
+                this.localizationButton && this.localizationButton.show();
+                return;
+            }
+            this.toolbar.findButton('localization-hidden')
+                .removeClass('localization-hidden').show();
+            this.deleteButton && this.deleteButton.toggle(this.isEditMode() && !isDeleted);
+            this.undeleteButton && this.undeleteButton.toggle(this.isEditMode() && isDeleted);
+            if (this.saveAndCloseButton) {
+                this.saveAndCloseButton.toggle(!isDeleted);
+                this.saveAndCloseButton.find('.button-inner')
+                    .text(Q.text((this.isNew() ? 'Controls.EntityDialog.SaveButton' :
+                    'Controls.EntityDialog.UpdateButton')));
+            }
+            this.applyChangesButton && this.applyChangesButton.toggle(!isDeleted);
+            this.cloneButton && this.cloneButton.toggle(false);
+        };
+        EntityDialog.prototype.getUndeleteOptions = function (callback) {
+            return {};
+        };
+        EntityDialog.prototype.undeleteHandler = function (options, callback) {
+            Q.serviceCall(options);
+        };
+        EntityDialog.prototype.undelete = function (callback) {
+            var _this = this;
+            var baseOptions = {};
+            baseOptions.service = this.getService() + '/Undelete';
+            var request = {};
+            request.EntityId = this.get_entityId();
+            baseOptions.request = request;
+            baseOptions.onSuccess = function (response) {
+                callback && callback(response);
+                _this.element.triggerHandler('ondatachange', [{
+                        entityId: _this.get_entityId(),
+                        entity: _this.entity,
+                        type: 'undelete'
+                    }]);
+            };
+            var thisOptions = this.getUndeleteOptions(callback);
+            var finalOptions = $.extend(baseOptions, thisOptions);
+            this.undeleteHandler(finalOptions, callback);
+        };
+        EntityDialog = __decorate([
+            Serenity.Decorators.registerClass('Serenity.EntityDialog', [Serenity['IEditDialog']])
+        ], EntityDialog);
+        return EntityDialog;
+    }(Serenity.TemplatedDialog));
+    Serenity.EntityDialog = EntityDialog;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {

@@ -363,6 +363,7 @@ declare namespace Serenity {
     interface SaveRequest<TEntity> extends ServiceRequest {
         EntityId?: any;
         Entity?: TEntity;
+        Localizations?: any;
     }
     interface SaveRequestWithAttachment<TEntity> extends SaveRequest<TEntity> {
         Attachments?: any[];
@@ -1123,7 +1124,7 @@ declare namespace Serenity {
         }): JQuery;
         static create<TWidget extends Widget<TOpt>, TOpt>(params: CreateWidgetParams<TWidget, TOpt>): TWidget;
         init(action?: (widget: any) => void): this;
-        private initialize();
+        initialize(): PromiseLike<void>;
     }
     interface Widget<TOptions> {
         addValidationRule(eventClass: string, rule: (p1: JQuery) => string): JQuery;
@@ -1366,7 +1367,7 @@ declare namespace Serenity {
         disabled?: boolean;
     }
     class SelectEditor extends Select2Editor<SelectEditorOptions, Select2Item> {
-        constructor(hidden: JQuery, opt: SelectEditorOptions);
+        constructor(hidden: JQuery, opt?: SelectEditorOptions);
         getItems(): any[];
         protected emptyItemText(): any;
         updateItems(): void;
@@ -1521,9 +1522,13 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
+    namespace EditorTypeRegistry {
+        function get(key: string): Function;
+        function reset(): void;
+    }
     namespace EditorUtils {
-        function getValue(editor: Serenity.Widget<any>): any;
         function getDisplayText(editor: Serenity.Widget<any>): string;
+        function getValue(editor: Serenity.Widget<any>): any;
         function saveValue(editor: Serenity.Widget<any>, item: PropertyItem, target: any): void;
         function setValue(editor: Serenity.Widget<any>, value: any): void;
         function loadValue(editor: Serenity.Widget<any>, item: PropertyItem, source: any): void;
@@ -1531,9 +1536,21 @@ declare namespace Serenity {
         function setReadOnly(widget: Serenity.Widget<any>, isReadOnly: boolean): void;
         function setRequired(widget: Serenity.Widget<any>, isRequired: boolean): void;
     }
-    class PublicEditorTypes {
-        static get_registeredTypes(): any;
+    interface EmailEditorOptions {
+        domain?: string;
+        readOnlyDomain?: boolean;
     }
+    class EmailEditor extends Widget<EmailEditorOptions> {
+        constructor(input: JQuery, opt: EmailEditorOptions);
+        static registerValidationMethods(): void;
+        get_value(): string;
+        readonly value: string;
+        set_value(value: string): void;
+        get_readOnly(): boolean;
+        set_readOnly(value: boolean): void;
+    }
+}
+declare namespace Serenity {
     class GoogleMap extends Widget<GoogleMapOptions> {
         constructor(container: JQuery, opt: GoogleMapOptions);
         get_map(): any;
@@ -2036,17 +2053,6 @@ declare namespace Serenity {
         constructor(prefix: string);
         w(id: string, type: Function): any;
     }
-    interface EmailEditorOptions {
-        domain?: string;
-        readOnlyDomain?: boolean;
-    }
-    class EmailEditor extends Widget<EmailEditorOptions> {
-        constructor(input: JQuery, opt: EmailEditorOptions);
-        static registerValidationMethods(): void;
-        value: string;
-        get_readOnly(): boolean;
-        set_readOnly(value: boolean): void;
-    }
     class PasswordEditor extends StringEditor {
         constructor(input: JQuery);
     }
@@ -2149,18 +2155,10 @@ declare namespace Serenity {
         text: string;
         click: () => void;
     }
-    class EditorTypeEditor extends SelectEditor {
-        constructor(select: JQuery);
-    }
     interface EditorTypeInfo {
         type?: Function;
         displayName?: string;
         optionsType?: Function;
-    }
-    namespace EditorTypeRegistry {
-        function get(key: string): Function;
-        function initialize(): void;
-        function reset(): void;
     }
 }
 declare namespace Serenity {
@@ -2258,6 +2256,8 @@ declare namespace Serenity {
     interface IValidateRequired {
         get_required(): boolean;
         set_required(value: boolean): void;
+    }
+    class IValidateRequired {
     }
 }
 declare namespace Serenity {
@@ -2570,81 +2570,106 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class EntityDialog<TItem, TOptions> extends TemplatedDialog<TOptions> {
-        constructor(options?: TOptions);
+    class EntityDialog<TItem, TOptions> extends TemplatedDialog<TOptions> implements IEditDialog {
+        protected entity: TItem;
+        protected entityId: any;
+        protected propertyGrid: PropertyGrid;
+        protected toolbar: Toolbar;
         protected saveAndCloseButton: JQuery;
         protected applyChangesButton: JQuery;
         protected deleteButton: JQuery;
         protected undeleteButton: JQuery;
         protected cloneButton: JQuery;
-        protected entity: TItem;
-        protected entityId: any;
-        protected toolbar: Toolbar;
-        dialogOpen(): void;
-        loadByIdAndOpenDialog(id: any): void;
-        protected afterLoadEntity(): void;
-        protected beforeLoadEntity(entity: TItem): void;
-        protected deleteHandler(options: ServiceOptions<DeleteResponse>, callback: (response: DeleteResponse) => void): void;
-        protected doDelete(callback: (response: DeleteResponse) => void): void;
-        protected getCloningEntity(): TItem;
-        protected getDeleteOptions(callback: (response: DeleteResponse) => void): ServiceOptions<DeleteResponse>;
-        protected getEntityIdField(): string;
-        protected getIsActiveProperty(): string;
-        protected getEntityNameField(): string;
-        protected getEntityNameFieldValue(): any;
-        protected getEntitySingular(): string;
-        protected getEntityTitle(): string;
-        protected getEntityType(): string;
-        protected getFormKey(): string;
-        protected getLanguages(): string[][];
-        protected getLoadByIdOptions(id: any, callback: (response: RetrieveResponse<TItem>) => void): ServiceOptions<RetrieveResponse<TItem>>;
-        protected getLoadByIdRequest(id: any): RetrieveRequest;
-        protected getLocalTextPrefix(): string;
-        protected getPropertyGridOptions(): PropertyGridOptions;
-        protected getPropertyGridOptionsAsync(): PromiseLike<PropertyGridOptions>;
-        protected getPropertyItems(): PropertyItem[];
-        protected getPropertyItemsAsync(): PromiseLike<PropertyItem[]>;
-        protected getSaveEntity(): TItem;
-        protected getSaveOptions(callback: (response: SaveResponse) => void): ServiceOptions<SaveResponse>;
-        protected getSaveRequest(): SaveRequest<TItem>;
-        protected getService(): string;
-        protected getToolbarButtons(): ToolButton[];
-        protected getUndeleteOptions(callback: (response: UndeleteResponse) => void): ServiceOptions<UndeleteResponse>;
+        protected localizationGrid: PropertyGrid;
+        protected localizationButton: JQuery;
+        protected localizationPendingValue: any;
+        protected localizationLastValue: any;
+        static defaultLanguageList: () => string[][];
+        constructor(opt?: TOptions);
+        protected initializeAsync(): PromiseLike<void>;
+        destroy(): void;
         protected get_entity(): TItem;
+        protected set_entity(entity: any): void;
         protected get_entityId(): any;
+        protected set_entityId(value: any): void;
+        protected getEntityNameFieldValue(): any;
+        protected getEntityTitle(): string;
+        protected updateTitle(): void;
         protected isCloneMode(): boolean;
-        protected isDeleted(): boolean;
         protected isEditMode(): boolean;
-        protected isLocalizationMode(): boolean;
+        protected isDeleted(): boolean;
         protected isNew(): boolean;
         protected isNewOrDeleted(): boolean;
-        protected initToolbar(): void;
-        protected initializeAsync(): PromiseLike<void>;
-        load(entityOrId: any, done: () => void, fail: () => void): void;
-        loadById(id: any): void;
-        loadByIdAndOpenDialog(id: any): void;
-        protected loadByIdHandler(options: ServiceOptions<RetrieveResponse<TItem>>, callback: (response: RetrieveResponse<TItem>) => void, fail: () => void): void;
-        loadEntity(entity: any): void;
-        loadEntityAndOpenDialog(entity: any): void;
-        loadNewAndOpenDialog(): void;
-        loadResponse(response: RetrieveResponse<TItem>): void;
+        protected getDeleteOptions(callback: (response: DeleteResponse) => void): ServiceOptions<DeleteResponse>;
+        protected deleteHandler(options: ServiceOptions<DeleteResponse>, callback: (response: DeleteResponse) => void): void;
+        protected doDelete(callback: (response: DeleteResponse) => void): void;
         protected onDeleteSuccess(response: DeleteResponse): void;
+        private attrs<TAttr>(attrType);
+        private entityType;
+        protected getEntityType(): string;
+        private formKey;
+        protected getFormKey(): string;
+        private localTextDbPrefix;
+        protected getLocalTextDbPrefix(): string;
+        protected getLocalTextPrefix(): string;
+        private entitySingular;
+        protected getEntitySingular(): string;
+        private nameProperty;
+        protected getNameProperty(): string;
+        private idProperty;
+        protected getIdProperty(): string;
+        protected isActiveProperty: string;
+        protected getIsActiveProperty(): string;
+        protected service: string;
+        protected getService(): string;
+        load(entityOrId: any, done: () => void, fail: (ex: ss.Exception) => void): void;
+        loadNewAndOpenDialog(asPanel?: boolean): void;
+        loadEntityAndOpenDialog(entity: TItem, asPanel?: boolean): void;
+        protected loadResponse(data: any): void;
+        protected loadEntity(entity: TItem): void;
+        protected beforeLoadEntity(entity: TItem): void;
+        protected afterLoadEntity(): void;
+        loadByIdAndOpenDialog(entityId: any, asPanel?: boolean): void;
         protected onLoadingData(data: RetrieveResponse<TItem>): void;
-        protected onSaveSuccess(response: SaveResponse): void;
+        protected getLoadByIdOptions(id: any, callback: (response: RetrieveResponse<TItem>) => void): ServiceOptions<RetrieveResponse<TItem>>;
+        protected getLoadByIdRequest(id: any): RetrieveRequest;
         protected reloadById(): void;
-        protected save(callback: (response: SaveResponse) => void): void;
-        protected saveHandler(options: ServiceOptions<SaveResponse>, callback: (response: SaveResponse) => void): void;
-        protected save_submitHandler(callback: (response: SaveResponse) => void): void;
-        protected set_entity(entity: any): void;
-        protected set_entityId(id: any): void;
-        protected showSaveSuccessMessage(response: SaveResponse): void;
-        protected undelete(): void;
-        protected undeleteHandler(options: ServiceOptions<UndeleteResponse>, callback: (response: UndeleteResponse) => void): void;
-        protected updateInterface(): void;
-        protected updateTitle(): void;
+        loadById(id: any, callback?: (response: RetrieveResponse<TItem>) => void, fail?: () => void): void;
+        protected loadByIdHandler(options: ServiceOptions<RetrieveResponse<TItem>>, callback: (response: RetrieveResponse<TItem>) => void, fail: () => void): void;
+        protected initLocalizationGrid(): void;
+        protected initLocalizationGridAsync(): PromiseLike<void>;
+        protected initLocalizationGridCommon(pgOptions: PropertyGridOptions): void;
+        protected isLocalizationMode(): boolean;
+        protected isLocalizationModeAndChanged(): boolean;
+        protected localizationButtonClick(): void;
+        protected getLanguages(): any[];
+        private getLangs();
+        protected loadLocalization(): void;
+        protected setLocalizationGridCurrentValues(): void;
+        protected getLocalizationGridValue(): any;
+        protected getPendingLocalizations(): any;
+        protected initPropertyGrid(): void;
+        protected initPropertyGridAsync(): PromiseLike<void>;
+        protected getPropertyItems(): any;
+        protected getPropertyGridOptions(): PropertyGridOptions;
+        protected getPropertyGridOptionsAsync(): PromiseLike<PropertyGridOptions>;
+        protected getPropertyItemsAsync(): PromiseLike<PropertyItem[]>;
         protected validateBeforeSave(): boolean;
-        protected propertyGrid: Serenity.PropertyGrid;
-        static defaultLanguageList: () => string[][];
+        protected getSaveOptions(callback: (response: SaveResponse) => void): ServiceOptions<SaveResponse>;
+        protected getSaveEntity(): TItem;
+        protected getSaveRequest(): SaveRequest<TItem>;
+        protected onSaveSuccess(response: SaveResponse): void;
+        protected save_submitHandler(callback: (response: SaveResponse) => void): void;
+        protected save(callback?: (response: SaveResponse) => void): void | boolean;
+        protected saveHandler(options: ServiceOptions<SaveResponse>, callback: (response: SaveResponse) => void): void;
+        protected initToolbar(): void;
+        protected showSaveSuccessMessage(response: SaveResponse): void;
+        protected getToolbarButtons(): ToolButton[];
+        protected getCloningEntity(): TItem;
+        protected updateInterface(): void;
+        protected getUndeleteOptions(callback?: (response: UndeleteResponse) => void): ServiceOptions<UndeleteResponse>;
+        protected undeleteHandler(options: ServiceOptions<UndeleteResponse>, callback: (response: UndeleteResponse) => void): void;
+        protected undelete(callback?: (response: UndeleteResponse) => void): void;
     }
 }
 declare namespace Serenity {
