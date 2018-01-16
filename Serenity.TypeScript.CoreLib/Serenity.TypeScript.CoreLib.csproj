@@ -116,13 +116,10 @@
     <TypeScriptCompile Include="UI\Filtering\IFiltering.ts" />
     <TypeScriptCompile Include="UI\Filtering\FilterStore.ts" />
     <TypeScriptCompile Include="UI\Filtering\BaseFiltering.ts" />
-    <TypeScriptCompile Include="UI\Filtering\StringFiltering.ts" />
     <TypeScriptCompile Include="UI\Filtering\BaseEditorFiltering.ts" />
-    <TypeScriptCompile Include="UI\Filtering\DateFiltering.ts" />
-    <TypeScriptCompile Include="UI\Filtering\DateTimeFiltering.ts" />
+    <TypeScriptCompile Include="UI\Filtering\FilteringTypes.ts" />
     <TypeScriptCompile Include="UI\Filtering\DecimalFiltering.ts" />
     <TypeScriptCompile Include="UI\Filtering\EditorFiltering.ts" />
-    <TypeScriptCompile Include="UI\Filtering\LookupFiltering.ts" />
     <TypeScriptCompile Include="UI\Filtering\FilteringTypeRegistry.ts" />
     <TypeScriptCompile Include="UI\Filtering\FilterWidgetBase.ts" />
     <TypeScriptCompile Include="UI\Filtering\FilterDisplayBar.ts" />

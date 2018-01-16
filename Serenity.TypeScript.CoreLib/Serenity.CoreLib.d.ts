@@ -1790,18 +1790,11 @@ declare namespace Serenity {
         getEditorText(): any;
         initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
-}
-declare namespace Serenity {
-    class StringFiltering extends BaseFiltering {
-        getOperators(): Serenity.FilterOperator[];
-    }
-}
-declare namespace Serenity {
-    abstract class BaseEditorFiltering<TEditor> extends BaseFiltering {
+    abstract class BaseEditorFiltering<TEditor extends Widget<any>> extends BaseFiltering {
         editorType: any;
         constructor(editorType: any);
         protected useEditor(): boolean;
-        protected editor: Serenity.Widget<any>;
+        protected editor: TEditor;
         createEditor(): void;
         protected useIdField(): boolean;
         getCriteriaField(): string;
@@ -1815,23 +1808,17 @@ declare namespace Serenity {
 declare namespace Serenity {
     class DateFiltering extends BaseEditorFiltering<DateEditor> {
         constructor();
-        getOperators(): Serenity.FilterOperator[];
+        getOperators(): FilterOperator[];
     }
-}
-declare namespace Serenity {
     class DateTimeFiltering extends BaseEditorFiltering<DateEditor> {
         constructor();
-        getOperators(): Serenity.FilterOperator[];
+        getOperators(): FilterOperator[];
         getCriteria(): CriteriaWithText;
     }
-}
-declare namespace Serenity {
     class DecimalFiltering extends BaseEditorFiltering<DecimalEditor> {
         constructor();
         getOperators(): Serenity.FilterOperator[];
     }
-}
-declare namespace Serenity {
     class EditorFiltering extends BaseEditorFiltering<Serenity.Widget<any>> {
         constructor();
         editorType: string;
@@ -1844,10 +1831,24 @@ declare namespace Serenity {
         protected useIdField(): boolean;
         initQuickFilter(filter: QuickFilter<Widget<any>, any>): void;
     }
-}
-declare namespace Serenity {
+    class EnumFiltering extends BaseEditorFiltering<EnumEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+    }
+    class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+    }
     class LookupFiltering extends BaseEditorFiltering<LookupEditor> {
+        constructor();
+        getOperators(): FilterOperator[];
+        protected useEditor(): boolean;
+        protected useIdField(): boolean;
+        getEditorText(): string;
+    }
+    class StringFiltering extends BaseFiltering {
         getOperators(): Serenity.FilterOperator[];
+        validateEditorValue(value: string): string;
     }
 }
 declare namespace Serenity {
@@ -2106,9 +2107,6 @@ declare namespace Serenity {
     interface IntegerEditorOptions {
         minValue?: number;
         maxValue?: number;
-    }
-    class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
-        getOperators(): Serenity.FilterOperator[];
     }
     interface HtmlContentEditorOptions {
     }
@@ -2479,6 +2477,42 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
+    class EntityGrid<TItem, TOptions> extends DataGrid<TItem, TOptions> {
+        constructor(container: JQuery, options?: TOptions);
+        protected usePager(): boolean;
+        protected createToolbarExtensions(): void;
+        protected getInitialTitle(): string;
+        protected getLocalTextPrefix(): string;
+        private entityType;
+        protected getEntityType(): string;
+        private displayName;
+        protected getDisplayName(): string;
+        private itemName;
+        protected getItemName(): string;
+        protected getAddButtonCaption(): string;
+        protected getButtons(): ToolButton[];
+        protected newRefreshButton(noText?: boolean): ToolButton;
+        protected addButtonClick(): void;
+        protected editItem(entityOrId: any): void;
+        protected editItemOfType(itemType: string, entityOrId: any): void;
+        private service;
+        protected getService(): string;
+        protected getViewOptions(): Slick.RemoteViewOptions;
+        protected getItemType(): string;
+        protected routeDialog(itemType: string, dialog: Widget<any>): void;
+        protected initDialog(dialog: Widget<any>): void;
+        protected initEntityDialog(itemType: string, dialog: Widget<any>): void;
+        protected createEntityDialog(itemType: string, callback?: (dlg: Widget<any>) => void): Widget<any>;
+        protected getDialogOptions(): JQueryUI.DialogOptions;
+        protected getDialogOptionsFor(itemType: string): JQueryUI.DialogOptions;
+        protected getDialogTypeFor(itemType: string): {
+            new (...args: any[]): Widget<any>;
+        };
+        private dialogType;
+        protected getDialogType(): {
+            new (...args: any[]): Widget<any>;
+        };
+    }
 }
 declare namespace Serenity {
     class CheckTreeEditor<TItem extends CheckTreeItem<any>, TOptions> extends DataGrid<TItem, TOptions> implements IGetEditValue, ISetEditValue {

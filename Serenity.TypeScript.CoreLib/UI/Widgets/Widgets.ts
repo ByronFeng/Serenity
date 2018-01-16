@@ -88,10 +88,6 @@
         maxValue?: number;
     }
 
-    class IntegerFiltering extends BaseEditorFiltering<IntegerEditor> {
-        getOperators(): Serenity.FilterOperator[];
-    }
-
     interface HtmlContentEditorOptions {
     }
 

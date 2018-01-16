@@ -1,7 +1,7 @@
 ﻿namespace Serenity {
 
     @Decorators.registerClass('Serenity.EntityGrid')
-    class EntityGrid<TItem, TOptions> extends DataGrid<TItem, TOptions> {
+    export class EntityGrid<TItem, TOptions> extends DataGrid<TItem, TOptions> {
 
         constructor(container: JQuery, options?: TOptions) {
             super(container, options);

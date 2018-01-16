@@ -4180,8 +4180,8 @@ var Serenity;
             this.clearItems();
             if (items.length > 0) {
                 var isStrings = typeof (items[0]) === 'string';
-                for (var $t1 = 0; $t1 < items.length; $t1++) {
-                    var item = items[$t1];
+                for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
+                    var item = items_2[_i];
                     var key = isStrings ? item : item[0];
                     var text = isStrings ? item : Q.coalesce(item[1], item[0]);
                     this.addOption(key, text, item, false);
@@ -5574,9 +5574,6 @@ var Serenity;
         return BaseFiltering;
     }());
     Serenity.BaseFiltering = BaseFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
     var BaseEditorFiltering = /** @class */ (function (_super) {
         __extends(BaseEditorFiltering, _super);
         function BaseEditorFiltering(editorType) {
@@ -5660,11 +5657,16 @@ var Serenity;
             Serenity.Decorators.registerClass('Serenity.BaseEditorFiltering')
         ], BaseEditorFiltering);
         return BaseEditorFiltering;
-    }(Serenity.BaseFiltering));
+    }(BaseFiltering));
     Serenity.BaseEditorFiltering = BaseEditorFiltering;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
+    var Operators = Serenity.FilterOperators;
+    var Option = Serenity.Decorators.option;
+    function Filtering(name) {
+        return Serenity.Decorators.registerClass('Serenity.' + name + 'Filtering');
+    }
     var DateFiltering = /** @class */ (function (_super) {
         __extends(DateFiltering, _super);
         function DateFiltering() {
@@ -5674,14 +5676,11 @@ var Serenity;
             return this.appendNullableOperators(this.appendComparisonOperators([]));
         };
         DateFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.DateFiltering')
+            Filtering('Date')
         ], DateFiltering);
         return DateFiltering;
     }(Serenity.BaseEditorFiltering));
     Serenity.DateFiltering = DateFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
     var DateTimeFiltering = /** @class */ (function (_super) {
         __extends(DateTimeFiltering, _super);
         function DateTimeFiltering() {
@@ -5741,14 +5740,11 @@ var Serenity;
             return _super.prototype.getCriteria.call(this);
         };
         DateTimeFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.DateTimeFiltering')
+            Filtering('DateTime')
         ], DateTimeFiltering);
         return DateTimeFiltering;
     }(Serenity.BaseEditorFiltering));
     Serenity.DateTimeFiltering = DateTimeFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
     var DecimalFiltering = /** @class */ (function (_super) {
         __extends(DecimalFiltering, _super);
         function DecimalFiltering() {
@@ -5758,16 +5754,11 @@ var Serenity;
             return this.appendNullableOperators(this.appendComparisonOperators([]));
         };
         DecimalFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.DecimalFiltering')
+            Filtering('Decimal')
         ], DecimalFiltering);
         return DecimalFiltering;
     }(Serenity.BaseEditorFiltering));
     Serenity.DecimalFiltering = DecimalFiltering;
-})(Serenity || (Serenity = {}));
-var Serenity;
-(function (Serenity) {
-    var Operators = Serenity.FilterOperators;
-    var Option = Serenity.Decorators.option;
     var EditorFiltering = /** @class */ (function (_super) {
         __extends(EditorFiltering, _super);
         function EditorFiltering() {
@@ -5836,11 +5827,90 @@ var Serenity;
             Option()
         ], EditorFiltering.prototype, "useLike", void 0);
         EditorFiltering = __decorate([
-            Serenity.Decorators.registerClass('Serenity.EditorFiltering')
+            Filtering('Editor')
         ], EditorFiltering);
         return EditorFiltering;
     }(Serenity.BaseEditorFiltering));
     Serenity.EditorFiltering = EditorFiltering;
+    var EnumFiltering = /** @class */ (function (_super) {
+        __extends(EnumFiltering, _super);
+        function EnumFiltering() {
+            return _super.call(this, Serenity.EnumEditor) || this;
+        }
+        EnumFiltering.prototype.getOperators = function () {
+            var op = [{ key: Operators.EQ }, { key: Operators.NE }];
+            return this.appendNullableOperators(op);
+        };
+        EnumFiltering = __decorate([
+            Filtering('Enum')
+        ], EnumFiltering);
+        return EnumFiltering;
+    }(Serenity.BaseEditorFiltering));
+    Serenity.EnumFiltering = EnumFiltering;
+    var IntegerFiltering = /** @class */ (function (_super) {
+        __extends(IntegerFiltering, _super);
+        function IntegerFiltering() {
+            return _super.call(this, Serenity.IntegerEditor) || this;
+        }
+        IntegerFiltering.prototype.getOperators = function () {
+            return this.appendNullableOperators(this.appendComparisonOperators([]));
+        };
+        IntegerFiltering = __decorate([
+            Filtering('Integer')
+        ], IntegerFiltering);
+        return IntegerFiltering;
+    }(Serenity.BaseEditorFiltering));
+    Serenity.IntegerFiltering = IntegerFiltering;
+    var LookupFiltering = /** @class */ (function (_super) {
+        __extends(LookupFiltering, _super);
+        function LookupFiltering() {
+            return _super.call(this, Serenity.LookupEditor) || this;
+        }
+        LookupFiltering.prototype.getOperators = function () {
+            var ops = [{ key: Operators.EQ }, { key: Operators.NE }, { key: Operators.contains }, { key: Operators.startsWith }];
+            return this.appendNullableOperators(ops);
+        };
+        LookupFiltering.prototype.useEditor = function () {
+            var op = this.get_operator().key;
+            return op == Operators.EQ || op == Operators.NE;
+        };
+        LookupFiltering.prototype.useIdField = function () {
+            return this.useEditor();
+        };
+        LookupFiltering.prototype.getEditorText = function () {
+            if (this.useEditor()) {
+                return this.editor.text;
+            }
+            return _super.prototype.getEditorText.call(this);
+        };
+        LookupFiltering = __decorate([
+            Filtering('Lookup')
+        ], LookupFiltering);
+        return LookupFiltering;
+    }(Serenity.BaseEditorFiltering));
+    Serenity.LookupFiltering = LookupFiltering;
+    var StringFiltering = /** @class */ (function (_super) {
+        __extends(StringFiltering, _super);
+        function StringFiltering() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        StringFiltering.prototype.getOperators = function () {
+            var ops = [{ key: Operators.contains }, { key: Operators.startsWith }, { key: Operators.EQ },
+                { key: Operators.NE }, { key: Operators.BW }];
+            return this.appendNullableOperators(ops);
+        };
+        StringFiltering.prototype.validateEditorValue = function (value) {
+            if (value.length === 0) {
+                return value;
+            }
+            return _super.prototype.validateEditorValue.call(this, value);
+        };
+        StringFiltering = __decorate([
+            Filtering('String')
+        ], StringFiltering);
+        return StringFiltering;
+    }(Serenity.BaseFiltering));
+    Serenity.StringFiltering = StringFiltering;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -7973,6 +8043,7 @@ var Serenity;
         ], EntityGrid);
         return EntityGrid;
     }(Serenity.DataGrid));
+    Serenity.EntityGrid = EntityGrid;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -9450,8 +9521,8 @@ var Serenity;
                     takeChildren(getId(child));
                 }
             }
-            for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
-                var item = items_2[_i];
+            for (var _i = 0, items_3 = items; _i < items_3.length; _i++) {
+                var item = items_3[_i];
                 var parentId = getParentId(item);
                 if (parentId == null ||
                     !((byId[parentId] || []).length)) {

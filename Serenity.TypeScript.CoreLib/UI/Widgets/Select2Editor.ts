@@ -409,8 +409,7 @@ namespace Serenity {
 
             if (items.length > 0) {
                 var isStrings = typeof (items[0]) === 'string';
-                for (var $t1 = 0; $t1 < items.length; $t1++) {
-                    var item = items[$t1];
+                for (var item of items) {
                     var key = isStrings ? item : item[0];
                     var text = isStrings ? item : Q.coalesce(item[1], item[0]);
                     this.addOption(key, text, item, false);
