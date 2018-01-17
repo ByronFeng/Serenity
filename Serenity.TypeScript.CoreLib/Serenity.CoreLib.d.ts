@@ -314,6 +314,7 @@ interface Select2Data {
 }
 interface JQuery {
     select2(options: Select2Options): JQuery;
+    select2(cmd: 'focus' | 'open'): JQuery;
     select2(cmd: 'destroy'): void;
     select2(cmd: 'val'): any;
     select2(cmd: 'val', value: string | string[]): JQuery;
@@ -847,6 +848,10 @@ declare namespace Serenity {
         value: boolean;
         constructor(value?: boolean);
     }
+    class FilterableAttribute {
+        value: boolean;
+        constructor(value?: boolean);
+    }
     class FormKeyAttribute {
         value: string;
         constructor(value: string);
@@ -933,10 +938,6 @@ declare namespace Serenity.Decorators {
     function service(value: string): (target: Function) => void;
 }
 declare namespace Serenity {
-    class FilterableAttribute {
-        constructor(value: boolean);
-        value: boolean;
-    }
     class HiddenAttribute {
     }
     class HintAttribute {
@@ -1726,17 +1727,22 @@ declare namespace Serenity {
 }
 declare namespace Serenity {
     class FilterStore {
-        constructor(fields: any);
-        raiseChanged(): void;
-        add_changed(value: any): void;
-        remove_changed(value: any): void;
-        get_fields(): PropertyItem[];
-        get_fieldByName(): any;
-        get_items(): FilterLine[];
-        get_activeCriteria(): any[];
-        get_displayText(): string;
+        constructor(fields: PropertyItem[]);
         static getCriteriaFor(items: FilterLine[]): any[];
         static getDisplayTextFor(items: FilterLine[]): string;
+        private changed;
+        private displayText;
+        private fields;
+        private fieldByName;
+        private items;
+        get_fields(): PropertyItem[];
+        get_fieldByName(): Q.Dictionary<PropertyItem>;
+        get_items(): FilterLine[];
+        raiseChanged(): void;
+        add_changed(value: (e: JQueryEventObject, a: any) => void): void;
+        remove_changed(value: (e: JQueryEventObject, a: any) => void): void;
+        get_activeCriteria(): any[];
+        get_displayText(): string;
     }
 }
 declare namespace Serenity {
@@ -1853,18 +1859,17 @@ declare namespace Serenity {
         getOperators(): Serenity.FilterOperator[];
         validateEditorValue(value: string): string;
     }
-}
-declare namespace Serenity {
     namespace FilteringTypeRegistry {
         function get(key: string): Function;
-        function initialize(): void;
-        function reset(): void;
     }
 }
 declare namespace Serenity {
     class FilterWidgetBase<TOptions> extends TemplatedWidget<TOptions> {
-        constructor(div: JQuery, opt: any);
-        filterStoreChanged(): void;
+        private store;
+        private onFilterStoreChanged;
+        constructor(div: JQuery, opt?: TOptions);
+        destroy(): void;
+        protected filterStoreChanged(): void;
         get_store(): FilterStore;
         set_store(value: FilterStore): void;
     }
@@ -1872,22 +1877,49 @@ declare namespace Serenity {
 declare namespace Serenity {
     class FilterDisplayBar extends FilterWidgetBase<any> {
         constructor(div: JQuery);
+        protected filterStoreChanged(): void;
+        protected getTemplate(): string;
     }
 }
 declare namespace Serenity {
     class FilterPanel extends FilterWidgetBase<any> {
         static panelTemplate: string;
         static rowTemplate: string;
+        private rowsDiv;
         constructor(div: JQuery);
-        updateRowsFromStore(): void;
-        search(): void;
+        private showInitialLine;
         get_showInitialLine(): boolean;
         set_showInitialLine(value: boolean): void;
+        protected filterStoreChanged(): void;
+        updateRowsFromStore(): void;
+        private showSearchButton;
         get_showSearchButton(): boolean;
         set_showSearchButton(value: boolean): void;
+        private updateStoreOnReset;
         get_updateStoreOnReset(): boolean;
         set_updateStoreOnReset(value: boolean): void;
+        protected getTemplate(): string;
+        protected initButtons(): void;
+        protected searchButtonClick(e: JQueryEventObject): void;
         get_hasErrors(): boolean;
+        search(): void;
+        protected addButtonClick(e: JQueryEventObject): void;
+        protected resetButtonClick(e: JQueryEventObject): void;
+        protected findEmptyRow(): JQuery;
+        protected addEmptyRow(popupField: boolean): JQuery;
+        protected onRowFieldChange(e: JQueryEventObject): void;
+        protected rowFieldChange(row: JQuery): void;
+        protected removeFiltering(row: JQuery): void;
+        protected populateOperatorList(row: JQuery): void;
+        protected getFieldFor(row: JQuery): PropertyItem;
+        protected getFilteringFor(row: JQuery): IFiltering;
+        protected onRowOperatorChange(e: JQueryEventObject): void;
+        protected rowOperatorChange(row: JQuery): void;
+        protected deleteRowClick(e: JQueryEventObject): void;
+        protected updateButtons(): void;
+        protected andOrClick(e: JQueryEventObject): void;
+        protected leftRightParenClick(e: JQueryEventObject): void;
+        protected updateParens(): void;
     }
 }
 declare namespace Serenity {
@@ -2313,7 +2345,11 @@ declare namespace Serenity {
 }
 declare namespace Serenity {
     class FilterDialog extends TemplatedDialog<any> {
+        private filterPanel;
+        constructor();
         get_filterPanel(): FilterPanel;
+        protected getTemplate(): string;
+        protected getDialogOptions(): JQueryUI.DialogOptions;
     }
 }
 declare namespace Serenity {
@@ -3150,20 +3186,6 @@ declare namespace Serenity {
     class AsyncLookupEditor extends LookupEditorBase<LookupEditorOptions, any> {
         constructor(hidden: JQuery, opt: LookupEditorOptions);
         getLookupKey(): any;
-    }
-}
-declare namespace Serenity.FilterPanels {
-    class FieldSelect extends Select2Editor<any, PropertyItem> {
-        constructor(hidden: JQuery, fields: PropertyItem[]);
-        emptyItemText(): string;
-        getSelect2Options(): Select2Options;
-    }
-}
-declare namespace Serenity.FilterPanels {
-    class OperatorSelect extends Select2Editor<any, FilterOperator> {
-        constructor(hidden: JQuery, source: FilterOperator[]);
-        emptyItemText(): string;
-        getSelect2Options(): Select2Options;
     }
 }
 declare namespace Serenity {

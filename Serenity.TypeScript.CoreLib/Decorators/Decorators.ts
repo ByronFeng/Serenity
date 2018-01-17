@@ -168,6 +168,12 @@ namespace Serenity {
         }
     }
 
+    @Attr('Filterable')
+    export class FilterableAttribute {
+        constructor(public value = true) {
+        }
+    }
+
     @Attr('FormKey')
     export class FormKeyAttribute {
         constructor(public value: string) {
@@ -452,11 +458,6 @@ namespace Serenity.Decorators {
 }
 
 declare namespace Serenity {
-
-    class FilterableAttribute {
-        constructor(value: boolean);
-        value: boolean;
-    }
 
     class HiddenAttribute {
     }

@@ -81,6 +81,7 @@ interface Select2Data {
 
 interface JQuery {
     select2(options: Select2Options): JQuery;
+    select2(cmd: 'focus' | 'open'): JQuery;
     select2(cmd: 'destroy'): void;
     select2(cmd: 'val'): any;
     select2(cmd: 'val', value: string | string[]): JQuery;
