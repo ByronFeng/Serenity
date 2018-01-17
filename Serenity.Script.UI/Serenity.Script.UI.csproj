@@ -43,7 +43,6 @@
     <Compile Include="Editor\RadioButtonEditor.cs" />
     <Compile Include="Editor\TimeEditor.cs" />
     <Compile Include="Editor\LookupEditor.cs" />
-    <Compile Include="Editor\PersonNameEditor.cs" />
     <Compile Include="Editor\DateYearEditorOptions.cs" />
     <Compile Include="Editor\ImageUploadHelper.cs" />
     <Compile Include="Editor\ImageUploadEditor.cs" />
@@ -54,7 +53,6 @@
     <Compile Include="Editor\Select2Editor.cs" />
     <Compile Include="Editor\URLEditor.cs" />
     <Compile Include="Editor\MaskedEditor.cs" />
-    <Compile Include="Editor\PhoneEditor.cs" />
     <Compile Include="FilterPanel\FilteringTypes\BaseEditorFiltering.cs" />
     <Compile Include="FilterPanel\FilteringTypes\EnumFiltering.cs" />
     <Compile Include="FilterPanel\FilteringTypes\DateTimeFiltering.cs" />

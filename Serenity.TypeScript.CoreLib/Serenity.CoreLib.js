@@ -2488,6 +2488,25 @@ var System;
         return GeneratedCodeAttribute;
     }());
     Serenity.GeneratedCodeAttribute = GeneratedCodeAttribute;
+    var HiddenAttribute = /** @class */ (function () {
+        function HiddenAttribute() {
+        }
+        HiddenAttribute = __decorate([
+            Attr('Hidden')
+        ], HiddenAttribute);
+        return HiddenAttribute;
+    }());
+    Serenity.HiddenAttribute = HiddenAttribute;
+    var HintAttribute = /** @class */ (function () {
+        function HintAttribute(hint) {
+            this.hint = hint;
+        }
+        HintAttribute = __decorate([
+            Attr('Hint')
+        ], HintAttribute);
+        return HintAttribute;
+    }());
+    Serenity.HintAttribute = HintAttribute;
     var IdPropertyAttribute = /** @class */ (function () {
         function IdPropertyAttribute(value) {
             this.value = value;
@@ -2498,6 +2517,16 @@ var System;
         return IdPropertyAttribute;
     }());
     Serenity.IdPropertyAttribute = IdPropertyAttribute;
+    var InsertableAttribute = /** @class */ (function () {
+        function InsertableAttribute(value) {
+            if (value === void 0) { value = true; }
+            this.value = value;
+        }
+        InsertableAttribute = __decorate([
+            Attr('Insertable')
+        ], InsertableAttribute);
+        return InsertableAttribute;
+    }());
     var IsActivePropertyAttribute = /** @class */ (function () {
         function IsActivePropertyAttribute(value) {
             this.value = value;
@@ -2539,6 +2568,16 @@ var System;
         return MaximizableAttribute;
     }());
     Serenity.MaximizableAttribute = MaximizableAttribute;
+    var MaxLengthAttribute = /** @class */ (function () {
+        function MaxLengthAttribute(maxLength) {
+            this.maxLength = maxLength;
+        }
+        MaxLengthAttribute = __decorate([
+            Attr('MaxLength')
+        ], MaxLengthAttribute);
+        return MaxLengthAttribute;
+    }());
+    Serenity.MaxLengthAttribute = MaxLengthAttribute;
     var NamePropertyAttribute = /** @class */ (function () {
         function NamePropertyAttribute(value) {
             this.value = value;
@@ -2549,6 +2588,15 @@ var System;
         return NamePropertyAttribute;
     }());
     Serenity.NamePropertyAttribute = NamePropertyAttribute;
+    var OneWayAttribute = /** @class */ (function () {
+        function OneWayAttribute() {
+        }
+        OneWayAttribute = __decorate([
+            Attr('OneWay')
+        ], OneWayAttribute);
+        return OneWayAttribute;
+    }());
+    Serenity.OneWayAttribute = OneWayAttribute;
     var OptionAttribute = /** @class */ (function () {
         function OptionAttribute() {
         }
@@ -2579,6 +2627,38 @@ var System;
         return PanelAttribute;
     }());
     Serenity.PanelAttribute = PanelAttribute;
+    var PlaceholderAttribute = /** @class */ (function () {
+        function PlaceholderAttribute(value) {
+            this.value = value;
+        }
+        PlaceholderAttribute = __decorate([
+            Attr('Placeholder')
+        ], PlaceholderAttribute);
+        return PlaceholderAttribute;
+    }());
+    Serenity.PlaceholderAttribute = PlaceholderAttribute;
+    var ReadOnlyAttribute = /** @class */ (function () {
+        function ReadOnlyAttribute(value) {
+            if (value === void 0) { value = true; }
+            this.value = value;
+        }
+        ReadOnlyAttribute = __decorate([
+            Attr('ReadOnly')
+        ], ReadOnlyAttribute);
+        return ReadOnlyAttribute;
+    }());
+    Serenity.ReadOnlyAttribute = ReadOnlyAttribute;
+    var RequiredAttribute = /** @class */ (function () {
+        function RequiredAttribute(isRequired) {
+            if (isRequired === void 0) { isRequired = true; }
+            this.isRequired = isRequired;
+        }
+        RequiredAttribute = __decorate([
+            Attr('Required')
+        ], RequiredAttribute);
+        return RequiredAttribute;
+    }());
+    Serenity.RequiredAttribute = RequiredAttribute;
     var ResizableAttribute = /** @class */ (function () {
         function ResizableAttribute(value) {
             if (value === void 0) { value = true; }
@@ -2611,6 +2691,17 @@ var System;
         return ServiceAttribute;
     }());
     Serenity.ServiceAttribute = ServiceAttribute;
+    var UpdatableAttribute = /** @class */ (function () {
+        function UpdatableAttribute(value) {
+            if (value === void 0) { value = true; }
+            this.value = value;
+        }
+        UpdatableAttribute = __decorate([
+            Attr('Updatable')
+        ], UpdatableAttribute);
+        return UpdatableAttribute;
+    }());
+    Serenity.UpdatableAttribute = UpdatableAttribute;
 })(Serenity || (Serenity = {}));
 (function (Serenity) {
     var Decorators;
@@ -2877,6 +2968,130 @@ var Serenity;
         }
         Criteria.or = or;
     })(Criteria = Serenity.Criteria || (Serenity.Criteria = {}));
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var GridRowSelectionMixin = /** @class */ (function () {
+        function GridRowSelectionMixin(grid) {
+            var _this = this;
+            this.include = {};
+            this.grid = grid;
+            this.idField = grid.getView().idField;
+            grid.getGrid().onClick.subscribe(function (e, p) {
+                if ($(e.target).hasClass('select-item')) {
+                    e.preventDefault();
+                    var item = grid.getView().getItem(p.row);
+                    var id = item[_this.idField].toString();
+                    if (!_this.include[id]) {
+                        delete _this.include[id];
+                    }
+                    else {
+                        _this.include[id] = true;
+                    }
+                    for (var i = 0; i < grid.getView().getLength(); i++) {
+                        grid.getGrid().updateRow(i);
+                    }
+                    _this.updateSelectAll();
+                }
+            });
+            grid.getGrid().onHeaderClick.subscribe(function (e1, u) {
+                if (e1.isDefaultPrevented()) {
+                    return;
+                }
+                if ($(e1.target).hasClass('select-all-items')) {
+                    e1.preventDefault();
+                    var view = grid.getView();
+                    if (Object.keys(_this.include).length > 0) {
+                        ss.clearKeys(_this.include);
+                    }
+                    else {
+                        var items = grid.getView().getItems();
+                        for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
+                            var x = items_2[_i];
+                            var id1 = x[_this.idField];
+                            _this.include[id1] = true;
+                        }
+                    }
+                    _this.updateSelectAll();
+                    grid.getView().setItems(grid.getView().getItems(), true);
+                }
+            });
+            grid.getView().onRowsChanged.subscribe(function () {
+                return _this.updateSelectAll();
+            });
+        }
+        GridRowSelectionMixin.prototype.updateSelectAll = function () {
+            var selectAllButton = this.grid.getElement()
+                .find('.select-all-header .slick-column-name .select-all-items');
+            if (selectAllButton) {
+                var keys = Object.keys(this.include);
+                selectAllButton.toggleClass('checked', keys.length > 0 &&
+                    this.grid.getView().getItems().length === keys.length);
+            }
+        };
+        GridRowSelectionMixin.prototype.clear = function () {
+            ss.clearKeys(this.include);
+            this.updateSelectAll();
+        };
+        GridRowSelectionMixin.prototype.resetCheckedAndRefresh = function () {
+            this.include = {};
+            this.updateSelectAll();
+            this.grid.getView().populate();
+        };
+        GridRowSelectionMixin.prototype.selectKeys = function (keys) {
+            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                var k = keys_1[_i];
+                this.include[k] = true;
+            }
+            this.updateSelectAll();
+        };
+        GridRowSelectionMixin.prototype.getSelectedKeys = function () {
+            return Object.keys(this.include);
+        };
+        GridRowSelectionMixin.prototype.getSelectedAsInt32 = function () {
+            return Object.keys(this.include).map(function (x) {
+                return parseInt(x, 10);
+            });
+        };
+        GridRowSelectionMixin.prototype.getSelectedAsInt64 = function () {
+            return Object.keys(this.include).map(function (x) {
+                return parseInt(x, 10);
+            });
+        };
+        GridRowSelectionMixin.prototype.setSelectedKeys = function (keys) {
+            this.clear();
+            for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
+                var k = keys_2[_i];
+                this.include[k] = true;
+            }
+            this.updateSelectAll();
+        };
+        GridRowSelectionMixin.createSelectColumn = function (getMixin) {
+            return {
+                name: '<span class="select-all-items check-box no-float "></span>',
+                toolTip: ' ',
+                field: '__select__',
+                width: 26,
+                minWidth: 26,
+                headerCssClass: 'select-all-header',
+                sortable: false,
+                format: function (ctx) {
+                    var item = ctx.item;
+                    var mixin = getMixin();
+                    if (!mixin) {
+                        return '';
+                    }
+                    var isChecked = mixin.include[ctx.item[mixin.idField]];
+                    return '<span class="select-item check-box no-float ' + (isChecked ? ' checked' : '') + '"></span>';
+                }
+            };
+        };
+        GridRowSelectionMixin = __decorate([
+            Serenity.Decorators.registerClass('Serenity.GridRowSelectionMixin')
+        ], GridRowSelectionMixin);
+        return GridRowSelectionMixin;
+    }());
+    Serenity.GridRowSelectionMixin = GridRowSelectionMixin;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -4200,8 +4415,8 @@ var Serenity;
             this.clearItems();
             if (items.length > 0) {
                 var isStrings = typeof (items[0]) === 'string';
-                for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
-                    var item = items_2[_i];
+                for (var _i = 0, items_3 = items; _i < items_3.length; _i++) {
+                    var item = items_3[_i];
                     var key = isStrings ? item : item[0];
                     var text = isStrings ? item : Q.coalesce(item[1], item[0]);
                     this.addOption(key, text, item, false);
@@ -4956,8 +5171,8 @@ var Serenity;
         function setTypeKeysWithoutEditorSuffix() {
             var suffix = 'editor';
             var keys = Object.keys(knownTypes);
-            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-                var k = keys_1[_i];
+            for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
+                var k = keys_3[_i];
                 if (!Q.endsWith(k, suffix))
                     continue;
                 var p = k.substr(0, k.length - suffix.length);
@@ -5340,6 +5555,50 @@ var Serenity;
         return EnumEditor;
     }(Serenity.Select2Editor));
     Serenity.EnumEditor = EnumEditor;
+    var GoogleMap = /** @class */ (function (_super) {
+        __extends(GoogleMap, _super);
+        function GoogleMap(container, opt) {
+            var _this = _super.call(this, container, opt) || this;
+            var center = new google.maps.LatLng(Q.coalesce(_this.options.latitude, 0), Q.coalesce(_this.options.longitude, 0));
+            var mapOpt = new Object();
+            mapOpt.center = center;
+            mapOpt.mapTypeId = Q.coalesce(_this.options.mapTypeId, 'roadmap');
+            mapOpt.zoom = Q.coalesce(_this.options.zoom, 15);
+            mapOpt.zoomControl = true;
+            _this.map = new google.maps.Map(container[0], mapOpt);
+            if (_this.options.markerTitle != null) {
+                var markerOpt = new Object();
+                var lat = _this.options.markerLatitude;
+                if (lat == null) {
+                    lat = Q.coalesce(_this.options.latitude, 0);
+                }
+                var lon = _this.options.markerLongitude;
+                if (lon == null) {
+                    lon = Q.coalesce(_this.options.longitude, 0);
+                }
+                markerOpt.position = new google.maps.LatLng(lat, lon);
+                markerOpt.map = _this.map;
+                markerOpt.title = _this.options.markerTitle;
+                markerOpt.animation = 2;
+                new google.maps.Marker(markerOpt);
+            }
+            Serenity.LazyLoadHelper.executeOnceWhenShown(container, function () {
+                google.maps.event.trigger(_this.map, 'resize', []);
+                _this.map.setCenter(center);
+                // in case it wasn't visible (e.g. in dialog)
+            });
+            return _this;
+        }
+        GoogleMap.prototype.get_map = function () {
+            return this.map;
+        };
+        GoogleMap = __decorate([
+            Serenity.Decorators.registerClass('Serenity.GoogleMap', []),
+            Serenity.Decorators.element('<div/>')
+        ], GoogleMap);
+        return GoogleMap;
+    }(Serenity.Widget));
+    Serenity.GoogleMap = GoogleMap;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -6298,8 +6557,8 @@ var Serenity;
         FilterPanel.prototype.updateRowsFromStore = function () {
             this.rowsDiv.empty();
             var items = this.get_store().get_items();
-            for (var _i = 0, items_3 = items; _i < items_3.length; _i++) {
-                var item = items_3[_i];
+            for (var _i = 0, items_4 = items; _i < items_4.length; _i++) {
+                var item = items_4[_i];
                 this.addEmptyRow(false);
                 var row = this.rowsDiv.children().last();
                 var divl = row.children('div.l');
@@ -6345,7 +6604,15 @@ var Serenity;
             }
         };
         FilterPanel.prototype.getTemplate = function () {
-            return FilterPanel.panelTemplate;
+            return "<div id='~_Rows' class='filter-lines'>" +
+                "</div>" +
+                "<div id='~_Buttons' class='buttons'>" +
+                "<button id='~_AddButton' class='btn btn-primary add'></button>" +
+                "<button id='~_SearchButton' class='btn btn-success search'></button>" +
+                "<button id='~_ResetButton' class='btn btn-danger reset'></button>" +
+                "</div>" +
+                "<div style='clear: both'>" +
+                "</div>";
         };
         FilterPanel.prototype.initButtons = function () {
             var _this = this;
@@ -6467,7 +6734,20 @@ var Serenity;
             }
             var isLastRowOr = this.rowsDiv.children().last()
                 .children('a.andor').hasClass('or');
-            var row = $(FilterPanel.rowTemplate).appendTo(this.rowsDiv);
+            var row = $("<div class='filter-line'>" +
+                "<a class='delete'><span></span></a>" +
+                "<div class='l'>" +
+                "<a class='rightparen' href='#'>)</a>" +
+                "<a class='andor' href='#'></a>" +
+                "<a class='leftparen' href='#'>(</a>" +
+                "</div>" +
+                "<div class='f'>" +
+                "<input type='hidden' class='field-select'>" +
+                "</div>" +
+                "<div class='o'></div>" +
+                "<div class='v'></div>" +
+                "<div style='clear: both'></div>" +
+                "</div>").appendTo(this.rowsDiv);
             var parenDiv = row.children('div.l').hide();
             parenDiv.children('a.leftparen, a.rightparen')
                 .click(function (e) { return _this.leftRightParenClick(e); });
@@ -6654,7 +6934,7 @@ var Serenity;
 (function (Serenity) {
     var Option = Serenity.Decorators.option;
     function Formatter(name, intf) {
-        return Serenity.Decorators.registerClass('Serenity.' + name + 'Formatter');
+        return Serenity.Decorators.registerFormatter('Serenity.' + name + 'Formatter', intf);
     }
     var BooleanFormatter = /** @class */ (function () {
         function BooleanFormatter() {
@@ -6972,6 +7252,183 @@ var Serenity;
         return UrlFormatter;
     }());
     Serenity.UrlFormatter = UrlFormatter;
+    var FormatterTypeRegistry;
+    (function (FormatterTypeRegistry) {
+        var knownTypes;
+        function setTypeKeysWithoutFormatterSuffix() {
+            var suffix = 'formatter';
+            for (var _i = 0, _a = Object.keys(knownTypes); _i < _a.length; _i++) {
+                var k = _a[_i];
+                if (!Q.endsWith(k, suffix))
+                    continue;
+                var p = k.substr(0, k.length - suffix.length);
+                if (Q.isEmptyOrNull(p))
+                    continue;
+                if (knownTypes[p] != null)
+                    continue;
+                knownTypes[p] = knownTypes[k];
+            }
+        }
+        function initialize() {
+            if (knownTypes) {
+                return;
+            }
+            knownTypes = {};
+            var assemblies = ss.getAssemblies();
+            for (var _i = 0, assemblies_2 = assemblies; _i < assemblies_2.length; _i++) {
+                var assembly = assemblies_2[_i];
+                var types = ss.getAssemblyTypes(assembly);
+                for (var _a = 0, types_1 = types; _a < types_1.length; _a++) {
+                    var type = types_1[_a];
+                    if (!ss.isAssignableFrom(Serenity.ISlickFormatter, type))
+                        continue;
+                    if (ss.isGenericTypeDefinition(type))
+                        continue;
+                    var fullName = ss.getTypeFullName(type).toLowerCase();
+                    knownTypes[fullName] = type;
+                    for (var _b = 0, _c = Q.Config.rootNamespaces; _b < _c.length; _b++) {
+                        var k = _c[_b];
+                        if (Q.startsWith(fullName, k.toLowerCase() + '.')) {
+                            var kx = fullName.substr(k.length + 1).toLowerCase();
+                            if (knownTypes[kx] == null) {
+                                knownTypes[kx] = type;
+                            }
+                        }
+                    }
+                }
+            }
+            setTypeKeysWithoutFormatterSuffix();
+        }
+        function get(key) {
+            if (Q.isEmptyOrNull(key))
+                throw new ss.ArgumentNullException('key');
+            initialize();
+            var formatterType = knownTypes[key.toLowerCase()];
+            if (formatterType == null) {
+                throw new ss.Exception(Q.format("Can't find {0} formatter type!", key));
+            }
+            return formatterType;
+        }
+        FormatterTypeRegistry.get = get;
+        function reset() {
+            knownTypes = null;
+        }
+        FormatterTypeRegistry.reset = reset;
+    })(FormatterTypeRegistry = Serenity.FormatterTypeRegistry || (Serenity.FormatterTypeRegistry = {}));
+})(Serenity || (Serenity = {}));
+var Serenity;
+(function (Serenity) {
+    var Flexify = /** @class */ (function (_super) {
+        __extends(Flexify, _super);
+        function Flexify(container, options) {
+            var _this = _super.call(this, container, options) || this;
+            _this.xDifference = 0;
+            _this.yDifference = 0;
+            Serenity.LazyLoadHelper.executeOnceWhenShown(container, function () {
+                _this.storeInitialSize();
+            });
+            return _this;
+        }
+        Flexify.prototype.storeInitialSize = function () {
+            var _this = this;
+            if (!!this.element.data('flexify-init')) {
+                return;
+            }
+            var designWidth = this.options.designWidth;
+            if (designWidth == null)
+                designWidth = this.element.width();
+            this.element.data('flexify-width', designWidth);
+            var designHeight = this.options.designHeight;
+            if (designHeight == null)
+                designHeight = this.element.height();
+            this.element.data('flexify-height', designHeight);
+            this.element.data('flexify-init', true);
+            this.element.bind('resize.' + this.uniqueName, function () {
+                return _this.resizeElements();
+            });
+            this.element.bind('resizestop.' + this.uniqueName, function () {
+                return _this.resizeElements();
+            });
+            var tabs = this.element.find('.ui-tabs');
+            if (tabs.length > 0) {
+                tabs.bind('tabsactivate.' + this.uniqueName, function () {
+                    return _this.resizeElements();
+                });
+            }
+            if (this.options.designWidth != null || this.options.designHeight != null)
+                this.resizeElements();
+        };
+        Flexify.prototype.getXFactor = function (element) {
+            var xFactor = null;
+            if (this.options.getXFactor != null)
+                xFactor = this.options.getXFactor(element);
+            if (xFactor == null)
+                xFactor = element.data('flex-x');
+            return Q.coalesce(xFactor, 1);
+        };
+        Flexify.prototype.getYFactor = function (element) {
+            var yFactor = null;
+            if (this.options.getYFactor != null)
+                yFactor = this.options.getYFactor(element);
+            if (yFactor == null)
+                yFactor = element.data('flex-y');
+            return Q.coalesce(yFactor, 0);
+        };
+        Flexify.prototype.resizeElements = function () {
+            var _this = this;
+            var width = this.element.width();
+            var initialWidth = this.element.data('flexify-width');
+            if (initialWidth == null) {
+                this.element.data('flexify-width', width);
+                initialWidth = width;
+            }
+            var height = this.element.height();
+            var initialHeight = this.element.data('flexify-height');
+            if (initialHeight == null) {
+                this.element.data('flexify-height', height);
+                initialHeight = height;
+            }
+            this.xDifference = width - initialWidth;
+            this.yDifference = height - initialHeight;
+            var containers = this.element;
+            var tabPanels = this.element.find('.ui-tabs-panel');
+            if (tabPanels.length > 0) {
+                containers = tabPanels.filter(':visible');
+            }
+            containers.find('.flexify')
+                .add(tabPanels.filter('.flexify:visible'))
+                .each(function (i, e) {
+                _this.resizeElement($(e));
+            });
+        };
+        Flexify.prototype.resizeElement = function (element) {
+            var xFactor = this.getXFactor(element);
+            if (xFactor !== 0) {
+                var initialWidth = element.data('flexify-width');
+                if (initialWidth == null) {
+                    var width = element.width();
+                    element.data('flexify-width', width);
+                    initialWidth = width;
+                }
+                element.width(initialWidth + xFactor * this.xDifference | 0);
+            }
+            var yFactor = this.getYFactor(element);
+            if (yFactor !== 0) {
+                var initialHeight = element.data('flexify-height');
+                if (initialHeight == null) {
+                    var height = element.height();
+                    element.data('flexify-height', height);
+                    initialHeight = height;
+                }
+                element.height(initialHeight + yFactor * this.yDifference | 0);
+            }
+            if (element.hasClass('require-layout')) {
+                element.triggerHandler('layout');
+            }
+        };
+        return Flexify;
+    }(Serenity.Widget));
+    Serenity.Flexify = Flexify;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -6983,8 +7440,8 @@ var Serenity;
                 knownTypes = {};
                 for (var _i = 0, _a = ss.getAssemblies(); _i < _a.length; _i++) {
                     var assembly = _a[_i];
-                    for (var _b = 0, assembly_1 = assembly; _b < assembly_1.length; _b++) {
-                        var type = assembly_1[_b];
+                    for (var _b = 0, _c = ss.getAssemblyTypes(assembly); _b < _c.length; _b++) {
+                        var type = _c[_b];
                         if (ss.isEnum(type)) {
                             var fullName = ss.getTypeFullName(type);
                             knownTypes[fullName] = type;
@@ -6992,8 +7449,8 @@ var Serenity;
                             if (enumKeyAttr != null && enumKeyAttr.length > 0) {
                                 knownTypes[enumKeyAttr[0].value] = type;
                             }
-                            for (var _c = 0, _d = Q.Config.rootNamespaces; _c < _d.length; _c++) {
-                                var k = _d[_c];
+                            for (var _d = 0, _e = Q.Config.rootNamespaces; _d < _e.length; _d++) {
+                                var k = _e[_d];
                                 if (Q.startsWith(fullName, k + '.')) {
                                     knownTypes[fullName.substr(k.length + 1)] = type;
                                 }
@@ -10557,8 +11014,8 @@ var Serenity;
                     takeChildren(getId(child));
                 }
             }
-            for (var _i = 0, items_4 = items; _i < items_4.length; _i++) {
-                var item = items_4[_i];
+            for (var _i = 0, items_5 = items; _i < items_5.length; _i++) {
+                var item = items_5[_i];
                 var parentId = getParentId(item);
                 if (parentId == null ||
                     !((byId[parentId] || []).length)) {

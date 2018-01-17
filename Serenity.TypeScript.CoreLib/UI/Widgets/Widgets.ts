@@ -28,12 +28,6 @@
         constructor(input: JQuery);
     }
 
-    class PersonNameEditor extends Widget<any> {
-        constructor(input: JQuery);
-        get_value(): string;
-        set_value(value: string): void;
-    }
-
     interface ToolbarOptions {
         buttons?: ToolButton[];
         hotkeyContext?: any;

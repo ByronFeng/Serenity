@@ -860,6 +860,13 @@ declare namespace Serenity {
         origin: string;
         constructor(origin?: string);
     }
+    class HiddenAttribute {
+        constructor();
+    }
+    class HintAttribute {
+        hint: string;
+        constructor(hint: string);
+    }
     class IdPropertyAttribute {
         value: string;
         constructor(value: string);
@@ -880,9 +887,15 @@ declare namespace Serenity {
         value: boolean;
         constructor(value?: boolean);
     }
+    class MaxLengthAttribute {
+        maxLength: number;
+        constructor(maxLength: number);
+    }
     class NamePropertyAttribute {
         value: string;
         constructor(value: string);
+    }
+    class OneWayAttribute {
     }
     class OptionAttribute {
         constructor();
@@ -895,6 +908,18 @@ declare namespace Serenity {
         value: boolean;
         constructor(value?: boolean);
     }
+    class PlaceholderAttribute {
+        value: string;
+        constructor(value: string);
+    }
+    class ReadOnlyAttribute {
+        value: boolean;
+        constructor(value?: boolean);
+    }
+    class RequiredAttribute {
+        isRequired: boolean;
+        constructor(isRequired?: boolean);
+    }
     class ResizableAttribute {
         value: boolean;
         constructor(value?: boolean);
@@ -906,6 +931,10 @@ declare namespace Serenity {
     class ServiceAttribute {
         value: string;
         constructor(value: string);
+    }
+    class UpdatableAttribute {
+        value: boolean;
+        constructor(value?: boolean);
     }
 }
 declare namespace Serenity.Decorators {
@@ -938,40 +967,6 @@ declare namespace Serenity.Decorators {
     function service(value: string): (target: Function) => void;
 }
 declare namespace Serenity {
-    class HiddenAttribute {
-    }
-    class HintAttribute {
-        constructor(hint: string);
-        hint: string;
-    }
-    class InsertableAttribute {
-        constructor(insertable?: boolean);
-        value: boolean;
-    }
-    class MaxLengthAttribute {
-        constructor(maxLength: number);
-        maxLength: number;
-    }
-    class OneWayAttribute {
-    }
-    class PlaceholderAttribute {
-        constructor(value: string);
-        value: string;
-    }
-    class ReadOnlyAttribute {
-        constructor(readOnly?: boolean);
-        value: boolean;
-    }
-    class RequiredAttribute {
-        constructor(isRequired: boolean);
-        isRequired: boolean;
-    }
-    class UpdatableAttribute {
-        constructor(updatable?: boolean);
-        value: boolean;
-    }
-}
-declare namespace Serenity {
     function Criteria(field: string): any[];
     namespace Criteria {
         function isEmpty(c: any[]): boolean;
@@ -982,10 +977,12 @@ declare namespace Serenity {
     }
 }
 declare namespace Serenity {
-    class GridRows<TItem> {
-    }
-    class GridRowSelectionMixin extends ScriptContext {
+    class GridRowSelectionMixin {
+        private idField;
+        private include;
+        private grid;
         constructor(grid: IDataGrid);
+        updateSelectAll(): void;
         clear(): void;
         resetCheckedAndRefresh(): void;
         selectKeys(keys: string[]): void;
@@ -995,6 +992,8 @@ declare namespace Serenity {
         setSelectedKeys(keys: string[]): void;
         static createSelectColumn(getMixin: () => GridRowSelectionMixin): Slick.Column;
     }
+}
+declare namespace Serenity {
     namespace GridSelectAllButtonHelper {
         function update(grid: IDataGrid, getSelected: (p1: any) => boolean): void;
         function define(getGrid: () => IDataGrid, getId: (p1: any) => any, getSelected: (p1: any) => boolean, setSelected: (p1: any, p2: boolean) => void, text?: string, onClick?: () => void): ToolButton;
@@ -1564,12 +1563,6 @@ declare namespace Serenity {
         protected updateItems(): void;
         protected getSelect2Options(): Select2Options;
     }
-}
-declare namespace Serenity {
-    class GoogleMap extends Widget<GoogleMapOptions> {
-        constructor(container: JQuery, opt: GoogleMapOptions);
-        get_map(): any;
-    }
     interface GoogleMapOptions {
         latitude?: any;
         longitude?: any;
@@ -1579,6 +1572,13 @@ declare namespace Serenity {
         markerLatitude?: any;
         markerLongitude?: any;
     }
+    class GoogleMap extends Widget<GoogleMapOptions> {
+        private map;
+        constructor(container: JQuery, opt: GoogleMapOptions);
+        get_map(): any;
+    }
+}
+declare namespace Serenity {
     interface RadioButtonEditorOptions {
         enumKey?: string;
         enumType?: any;
@@ -1645,20 +1645,6 @@ declare namespace Serenity {
         value: UploadedFile[];
         get_jsonEncodeValue(): boolean;
         set_jsonEncodeValue(value: boolean): void;
-    }
-    interface PhoneEditorOptions {
-        multiple?: boolean;
-        internal?: boolean;
-        mobile?: boolean;
-        allowExtension?: boolean;
-        allowInternational?: boolean;
-    }
-    class PhoneEditor extends Widget<PhoneEditorOptions> {
-        constructor(input: JQuery, opt?: PhoneEditorOptions);
-        validate(value: string): string;
-        formatValue(): void;
-        getFormattedValue(): string;
-        value: string;
     }
     class Select2AjaxEditor<TOptions, TItem> extends Widget<TOptions> {
         pageSize: number;
@@ -1883,8 +1869,6 @@ declare namespace Serenity {
 }
 declare namespace Serenity {
     class FilterPanel extends FilterWidgetBase<any> {
-        static panelTemplate: string;
-        static rowTemplate: string;
         private rowsDiv;
         constructor(div: JQuery);
         private showInitialLine;
@@ -2014,30 +1998,27 @@ declare namespace Serenity {
         urlFormat: string;
         target: string;
     }
-}
-declare namespace Serenity {
     namespace FormatterTypeRegistry {
         function get(key: string): Function;
-        function initialize(): void;
         function reset(): void;
     }
 }
 declare namespace Serenity {
     class Flexify extends Widget<FlexifyOptions> {
+        private xDifference;
+        private yDifference;
         constructor(container: JQuery, options: FlexifyOptions);
+        storeInitialSize(): void;
+        private getXFactor(element);
+        private getYFactor(element);
+        private resizeElements();
+        private resizeElement(element);
     }
     interface FlexifyOptions {
         getXFactor?: (p1: JQuery) => any;
         getYFactor?: (p1: JQuery) => any;
         designWidth?: any;
         designHeight?: any;
-    }
-    namespace FLX {
-        function flexHeightOnly(element: JQuery, flexY?: number): JQuery;
-        function flexWidthOnly(element: JQuery, flexX?: number): JQuery;
-        function flexWidthHeight(element: JQuery, flexX?: number, flexY?: number): JQuery;
-        function flexXFactor(element: JQuery, flexX: number): JQuery;
-        function flexYFactor(element: JQuery, flexY: number): JQuery;
     }
 }
 declare namespace Serenity {
@@ -2080,11 +2061,6 @@ declare namespace Serenity {
     }
     class PasswordEditor extends StringEditor {
         constructor(input: JQuery);
-    }
-    class PersonNameEditor extends Widget<any> {
-        constructor(input: JQuery);
-        get_value(): string;
-        set_value(value: string): void;
     }
     interface ToolbarOptions {
         buttons?: ToolButton[];

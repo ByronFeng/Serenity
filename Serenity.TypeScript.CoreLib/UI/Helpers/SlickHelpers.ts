@@ -1,18 +1,146 @@
-﻿declare namespace Serenity {
-    class GridRows<TItem> {
-    }
+﻿namespace Serenity {
+    @Decorators.registerClass('Serenity.GridRowSelectionMixin')
+    export class GridRowSelectionMixin {
 
-    class GridRowSelectionMixin extends ScriptContext {
-        constructor(grid: IDataGrid);
-        clear(): void;
-        resetCheckedAndRefresh(): void;
-        selectKeys(keys: string[]): void;
-        getSelectedKeys(): string[];
-        getSelectedAsInt32(): number[];
-        getSelectedAsInt64(): number[];
-        setSelectedKeys(keys: string[]): void;
-        static createSelectColumn(getMixin: () => GridRowSelectionMixin): Slick.Column;
+        private idField: string;
+        private include: Q.Dictionary<boolean>;
+        private grid: IDataGrid;
+
+        constructor(grid: IDataGrid) {
+
+            this.include = {};
+            this.grid = grid;
+            this.idField = (grid.getView() as any).idField;
+
+            grid.getGrid().onClick.subscribe((e, p) => {
+                if ($(e.target).hasClass('select-item')) {
+                    e.preventDefault();
+                    var item = grid.getView().getItem(p.row);
+                    var id = item[this.idField].toString();
+
+                    if (!this.include[id]) {
+                        delete this.include[id];
+                    }
+                    else {
+                        this.include[id] = true;
+                    }
+
+                    for (var i = 0; i < (grid.getView() as any).getLength(); i++) {
+                        grid.getGrid().updateRow(i);
+                    }
+
+                    this.updateSelectAll();
+                }
+            });
+
+            grid.getGrid().onHeaderClick.subscribe((e1, u) => {
+                if (e1.isDefaultPrevented()) {
+                    return;
+                }
+                if ($(e1.target).hasClass('select-all-items')) {
+                    e1.preventDefault();
+                    var view = grid.getView();
+                    if (Object.keys(this.include).length > 0) {
+                        (ss as any).clearKeys(this.include);
+                    }
+                    else {
+                        var items = grid.getView().getItems();
+                        for (var x of items) {
+                            var id1 = x[this.idField];
+                            this.include[id1] = true;
+                        }
+                    }
+                    this.updateSelectAll();
+                    grid.getView().setItems(grid.getView().getItems(), true);
+                }
+            });
+
+            (grid.getView() as any).onRowsChanged.subscribe(() => {
+                return this.updateSelectAll();
+            });
+        }
+
+        updateSelectAll(): void {
+            var selectAllButton = this.grid.getElement()
+                .find('.select-all-header .slick-column-name .select-all-items');
+
+            if (selectAllButton) {
+                var keys = Object.keys(this.include);
+                selectAllButton.toggleClass('checked',
+                    keys.length > 0 &&
+                    this.grid.getView().getItems().length === keys.length);
+            }
+        }
+
+        clear(): void {
+            (ss as any).clearKeys(this.include);
+            this.updateSelectAll();
+        }
+
+        resetCheckedAndRefresh(): void {
+            this.include = {};
+            this.updateSelectAll();
+            this.grid.getView().populate();
+        }
+
+        selectKeys(keys: string[]): void {
+            for (var k of keys) {
+                this.include[k] = true;
+            }
+
+            this.updateSelectAll();
+        }
+
+        getSelectedKeys(): string[] {
+            return Object.keys(this.include);
+        }
+
+        getSelectedAsInt32(): number[] {
+            return Object.keys(this.include).map(function (x) {
+                return parseInt(x, 10);
+            });
+        }
+
+        getSelectedAsInt64(): number[] {
+            return Object.keys(this.include).map(function (x) {
+                return parseInt(x, 10);
+            });
+        }
+
+        setSelectedKeys(keys: string[]): void {
+            this.clear();
+            for (var k of keys) {
+                this.include[k] = true;
+            }
+
+            this.updateSelectAll();
+        }
+
+        static createSelectColumn(getMixin: () => GridRowSelectionMixin): Slick.Column {
+            return {
+                name: '<span class="select-all-items check-box no-float "></span>',
+                toolTip: ' ',
+                field: '__select__',
+                width: 26,
+                minWidth: 26,
+                headerCssClass: 'select-all-header',
+                sortable: false,
+                format: function (ctx) {
+                    var item = ctx.item;
+                    var mixin = getMixin();
+                    if (!mixin) {
+                        return '';
+                    }
+                    var isChecked = mixin.include[ctx.item[mixin.idField]];
+                    return '<span class="select-item check-box no-float ' + (isChecked ? ' checked' : '') + '"></span>';
+                }
+            };
+        }
     }
+}
+
+declare namespace Serenity {
+    
 
     namespace GridSelectAllButtonHelper {
         function update(grid: IDataGrid, getSelected: (p1: any) => boolean): void;
