@@ -3092,6 +3092,209 @@ var Serenity;
         return GridRowSelectionMixin;
     }());
     Serenity.GridRowSelectionMixin = GridRowSelectionMixin;
+    var GridSelectAllButtonHelper;
+    (function (GridSelectAllButtonHelper) {
+        function update(grid, getSelected) {
+            var toolbar = grid.element.children('.s-Toolbar');
+            if (toolbar.length === 0) {
+                return;
+            }
+            var btn = toolbar.getWidget(Serenity.Toolbar).findButton('select-all-button');
+            var items = grid.getView().getItems();
+            btn.toggleClass('checked', items.length > 0 && !items.some(function (x) {
+                return !getSelected(x);
+            }));
+        }
+        GridSelectAllButtonHelper.update = update;
+        function define(getGrid, getId, getSelected, setSelected, text, onClick) {
+            if (text == null) {
+                text = Q.coalesce(Q.tryGetText('Controls.CheckTreeEditor.SelectAll'), 'Select All');
+            }
+            return {
+                title: text,
+                cssClass: 'select-all-button',
+                onClick: function () {
+                    var grid = getGrid();
+                    var view = grid.getView();
+                    var btn = grid.element.children('.s-Toolbar')
+                        .getWidget(Serenity.Toolbar).findButton('select-all-button');
+                    var makeSelected = !btn.hasClass('checked');
+                    view.beginUpdate();
+                    try {
+                        for (var _i = 0, _a = view.getItems(); _i < _a.length; _i++) {
+                            var item = _a[_i];
+                            setSelected(item, makeSelected);
+                            view.updateItem(getId(item), item);
+                        }
+                        onClick && onClick();
+                    }
+                    finally {
+                        view.endUpdate();
+                    }
+                    btn.toggleClass('checked', makeSelected);
+                }
+            };
+        }
+        GridSelectAllButtonHelper.define = define;
+    })(GridSelectAllButtonHelper = Serenity.GridSelectAllButtonHelper || (Serenity.GridSelectAllButtonHelper = {}));
+    var GridUtils;
+    (function (GridUtils) {
+        function addToggleButton(toolDiv, cssClass, callback, hint, initial) {
+            var div = $('<div><a href="#"></a></div>')
+                .addClass('s-ToggleButton').addClass(cssClass)
+                .prependTo(toolDiv);
+            div.children('a').click(function (e) {
+                e.preventDefault();
+                div.toggleClass('pressed');
+                var pressed = div.hasClass('pressed');
+                callback && callback(pressed);
+            }).attr('title', Q.coalesce(hint, ''));
+            if (initial) {
+                div.addClass('pressed');
+            }
+        }
+        GridUtils.addToggleButton = addToggleButton;
+        function addIncludeDeletedToggle(toolDiv, view, hint, initial) {
+            var includeDeleted = false;
+            var oldSubmit = view.onSubmit;
+            view.onSubmit = function (v) {
+                v.params.IncludeDeleted = includeDeleted;
+                if (oldSubmit != null) {
+                    return oldSubmit(v);
+                }
+                return true;
+            };
+            if (hint == null)
+                hint = Q.text('Controls.EntityGrid.IncludeDeletedToggle');
+            addToggleButton(toolDiv, 's-IncludeDeletedToggle', function (pressed) {
+                includeDeleted = pressed;
+                view.seekToPage = 1;
+                view.populate();
+            }, hint, initial);
+            toolDiv.bind('remove', function () {
+                view.onSubmit = null;
+                oldSubmit = null;
+            });
+        }
+        GridUtils.addIncludeDeletedToggle = addIncludeDeletedToggle;
+        function addQuickSearchInput(toolDiv, view, fields) {
+            var oldSubmit = view.onSubmit;
+            var searchText = '';
+            var searchField = '';
+            view.onSubmit = function (v) {
+                if (searchText != null && searchText.length > 0) {
+                    v.params.ContainsText = searchText;
+                }
+                else {
+                    delete v.params['ContainsText'];
+                }
+                if (searchField != null && searchField.length > 0) {
+                    v.params.ContainsField = searchField;
+                }
+                else {
+                    delete v.params['ContainsField'];
+                }
+                if (oldSubmit != null)
+                    return oldSubmit(v);
+                return true;
+            };
+            var lastDoneEvent = null;
+            addQuickSearchInputCustom(toolDiv, function (field, query, done) {
+                searchText = query;
+                searchField = field;
+                view.seekToPage = 1;
+                lastDoneEvent = done;
+                view.populate();
+            }, fields);
+            view.onDataLoaded.subscribe(function (e, ui) {
+                if (lastDoneEvent != null) {
+                    lastDoneEvent(view.getLength() > 0);
+                    lastDoneEvent = null;
+                }
+            });
+        }
+        GridUtils.addQuickSearchInput = addQuickSearchInput;
+        function addQuickSearchInputCustom(container, onSearch, fields) {
+            var div = $('<div><input type="text"/></div>')
+                .addClass('s-QuickSearchBar').prependTo(container);
+            if (fields != null && fields.length > 0) {
+                div.addClass('has-quick-search-fields');
+            }
+            new Serenity.QuickSearchInput(div.children(), {
+                fields: fields,
+                onSearch: onSearch
+            });
+        }
+        function makeOrderable(grid, handleMove) {
+            var moveRowsPlugin = new Slick.RowMoveManager({ cancelEditOnDrag: true });
+            moveRowsPlugin.onBeforeMoveRows.subscribe(function (e, data) {
+                for (var i = 0; !!(i < data.rows.length); i++) {
+                    if (!!(data.rows[i] === data.insertBefore ||
+                        data.rows[i] === data.insertBefore - 1)) {
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+                return true;
+            });
+            moveRowsPlugin.onMoveRows.subscribe(function (e1, data1) {
+                handleMove(data1.rows, data1.insertBefore);
+                try {
+                    grid.setSelectedRows([]);
+                }
+                catch ($t1) {
+                }
+            });
+            grid.registerPlugin(moveRowsPlugin);
+        }
+        GridUtils.makeOrderable = makeOrderable;
+        function makeOrderableWithUpdateRequest(grid, getId, getDisplayOrder, service, getUpdateRequest) {
+            makeOrderable(grid.slickGrid, function (rows, insertBefore) {
+                if (rows.length === 0) {
+                    return;
+                }
+                var order;
+                var index = insertBefore;
+                if (index < 0) {
+                    order = 1;
+                }
+                else if (insertBefore >= grid.rowCount()) {
+                    order = Q.coalesce(getDisplayOrder(grid.itemAt(grid.rowCount() - 1)), 0);
+                    if (order === 0) {
+                        order = insertBefore + 1;
+                    }
+                    else {
+                        order = order + 1;
+                    }
+                }
+                else {
+                    order = Q.coalesce(getDisplayOrder(grid.itemAt(insertBefore)), 0);
+                    if (order === 0) {
+                        order = insertBefore + 1;
+                    }
+                }
+                var i = 0;
+                var next = null;
+                next = function () {
+                    Q.serviceCall({
+                        service: service,
+                        request: getUpdateRequest(getId(grid.itemAt(rows[i])), order++),
+                        onSuccess: function (response) {
+                            i++;
+                            if (i < rows.length) {
+                                next();
+                            }
+                            else {
+                                grid.view.populate();
+                            }
+                        }
+                    });
+                };
+                next();
+            });
+        }
+        GridUtils.makeOrderableWithUpdateRequest = makeOrderableWithUpdateRequest;
+    })(GridUtils = Serenity.GridUtils || (Serenity.GridUtils = {}));
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {
@@ -5599,6 +5802,181 @@ var Serenity;
         return GoogleMap;
     }(Serenity.Widget));
     Serenity.GoogleMap = GoogleMap;
+    var HtmlContentEditor = /** @class */ (function (_super) {
+        __extends(HtmlContentEditor, _super);
+        function HtmlContentEditor(textArea, opt) {
+            var _this = _super.call(this, textArea, opt) || this;
+            _this._instanceReady = false;
+            HtmlContentEditor_1.includeCKEditor();
+            var id = textArea.attr('id');
+            if (Q.isTrimmedEmpty(id)) {
+                textArea.attr('id', _this.uniqueName);
+                id = _this.uniqueName;
+            }
+            if (_this.options.cols != null)
+                textArea.attr('cols', _this.options.cols);
+            if (_this.options.rows != null)
+                textArea.attr('rows', _this.options.rows);
+            _this.addValidationRule(_this.uniqueName, function (e) {
+                if (e.hasClass('required')) {
+                    var value = Q.trimToNull(_this.get_value());
+                    if (value == null)
+                        return Q.text('Validation.Required');
+                }
+                return null;
+            });
+            Serenity.LazyLoadHelper.executeOnceWhenShown(_this.element, function () {
+                var config = _this.getConfig();
+                window['CKEDITOR'] && window['CKEDITOR'].replace(id, config);
+            });
+            return _this;
+        }
+        HtmlContentEditor_1 = HtmlContentEditor;
+        HtmlContentEditor.prototype.instanceReady = function (x) {
+            this._instanceReady = true;
+            $(x.editor.container.$).addClass(this.element.attr('class'));
+            this.element.addClass('select2-offscreen').css('display', 'block');
+            // for validation to work
+            x.editor.setData(this.element.val());
+            x.editor.setReadOnly(this.get_readOnly());
+        };
+        HtmlContentEditor.prototype.getLanguage = function () {
+            if (!window['CKEDITOR'])
+                return 'en';
+            var CKEDITOR = window['CKEDITOR'];
+            var lang = Q.coalesce(Q.trimToNull($('html').attr('lang')), 'en');
+            if (!!CKEDITOR.lang.languages[lang]) {
+                return lang;
+            }
+            if (lang.indexOf(String.fromCharCode(45)) >= 0) {
+                lang = lang.split(String.fromCharCode(45))[0];
+            }
+            if (!!CKEDITOR.lang.languages[lang]) {
+                return lang;
+            }
+            return 'en';
+        };
+        HtmlContentEditor.prototype.getConfig = function () {
+            var _this = this;
+            return {
+                customConfig: '',
+                language: this.getLanguage(),
+                bodyClass: 's-HtmlContentBody',
+                on: {
+                    instanceReady: function (x) { return _this.instanceReady(x); },
+                    change: function (x1) {
+                        x1.editor.updateElement();
+                        _this.element.triggerHandler('change');
+                    }
+                },
+                toolbarGroups: [
+                    {
+                        name: 'clipboard',
+                        groups: ['clipboard', 'undo']
+                    }, {
+                        name: 'editing',
+                        groups: ['find', 'selection', 'spellchecker']
+                    }, {
+                        name: 'insert',
+                        groups: ['links', 'insert', 'blocks', 'bidi', 'list', 'indent']
+                    }, {
+                        name: 'forms',
+                        groups: ['forms', 'mode', 'document', 'doctools', 'others', 'about', 'tools']
+                    }, {
+                        name: 'colors'
+                    }, {
+                        name: 'basicstyles',
+                        groups: ['basicstyles', 'cleanup']
+                    }, {
+                        name: 'align'
+                    }, {
+                        name: 'styles'
+                    }
+                ],
+                removeButtons: 'SpecialChar,Anchor,Subscript,Styles',
+                format_tags: 'p;h1;h2;h3;pre',
+                removeDialogTabs: 'image:advanced;link:advanced',
+                contentsCss: Q.resolveUrl('~/Content/site/site.htmlcontent.css'),
+                entities: false,
+                entities_latin: false,
+                entities_greek: false,
+                autoUpdateElement: true,
+                height: (this.options.rows == null || this.options.rows === 0) ? null :
+                    ((this.options.rows * 20) + 'px')
+            };
+        };
+        HtmlContentEditor.prototype.getEditorInstance = function () {
+            var id = this.element.attr('id');
+            return window['CKEDITOR'].instances[id];
+        };
+        HtmlContentEditor.prototype.destroy = function () {
+            var instance = this.getEditorInstance();
+            instance && instance.destroy(true);
+            _super.prototype.destroy.call(this);
+        };
+        HtmlContentEditor.prototype.get_value = function () {
+            var instance = this.getEditorInstance();
+            if (this._instanceReady && instance) {
+                return instance.getData();
+            }
+            else {
+                return this.element.val();
+            }
+        };
+        Object.defineProperty(HtmlContentEditor.prototype, "value", {
+            get: function () {
+                return this.get_value();
+            },
+            set: function (v) {
+                this.set_value(v);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        HtmlContentEditor.prototype.set_value = function (value) {
+            var instance = this.getEditorInstance();
+            this.element.val(value);
+            if (this._instanceReady && instance)
+                instance.setData(value);
+        };
+        HtmlContentEditor.prototype.get_readOnly = function () {
+            return !Q.isEmptyOrNull(this.element.attr('disabled'));
+        };
+        HtmlContentEditor.prototype.set_readOnly = function (value) {
+            if (this.get_readOnly() !== value) {
+                if (value) {
+                    this.element.attr('disabled', 'disabled');
+                }
+                else {
+                    this.element.removeAttr('disabled');
+                }
+                var instance = this.getEditorInstance();
+                if (this._instanceReady && instance)
+                    instance.setReadOnly(value);
+            }
+        };
+        HtmlContentEditor.includeCKEditor = function () {
+            if (window['CKEDITOR']) {
+                return;
+            }
+            var script = $('#CKEditorScript');
+            if (script.length > 0) {
+                return;
+            }
+            $('<script/>').attr('type', 'text/javascript')
+                .attr('id', 'CKEditorScript')
+                .attr('src', Q.resolveUrl('~/Scripts/CKEditor/ckeditor.js'))
+                .appendTo(window.document.head);
+        };
+        ;
+        HtmlContentEditor = HtmlContentEditor_1 = __decorate([
+            Serenity.Decorators.registerEditor('Serenity.HtmlContentEditor', [Serenity.IStringValue, Serenity.IReadOnly]),
+            Serenity.Decorators.element('<textarea/>')
+        ], HtmlContentEditor);
+        return HtmlContentEditor;
+        var HtmlContentEditor_1;
+    }(Serenity.Widget));
+    Serenity.HtmlContentEditor = HtmlContentEditor;
 })(Serenity || (Serenity = {}));
 var Serenity;
 (function (Serenity) {

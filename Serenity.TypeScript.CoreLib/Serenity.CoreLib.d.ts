@@ -992,8 +992,6 @@ declare namespace Serenity {
         setSelectedKeys(keys: string[]): void;
         static createSelectColumn(getMixin: () => GridRowSelectionMixin): Slick.Column;
     }
-}
-declare namespace Serenity {
     namespace GridSelectAllButtonHelper {
         function update(grid: IDataGrid, getSelected: (p1: any) => boolean): void;
         function define(getGrid: () => IDataGrid, getId: (p1: any) => any, getSelected: (p1: any) => boolean, setSelected: (p1: any, p2: boolean) => void, text?: string, onClick?: () => void): ToolButton;
@@ -1002,11 +1000,11 @@ declare namespace Serenity {
         function addToggleButton(toolDiv: JQuery, cssClass: string, callback: (p1: boolean) => void, hint: string, initial?: boolean): void;
         function addIncludeDeletedToggle(toolDiv: JQuery, view: Slick.RemoteView<any>, hint?: string, initial?: boolean): void;
         function addQuickSearchInput(toolDiv: JQuery, view: Slick.RemoteView<any>, fields?: QuickSearchField[]): void;
-        function addQuickSearchInputCustom(container: JQuery, onSearch: (p1: string, p2: string) => void, fields?: QuickSearchField[]): void;
-        function addQuickSearchInputCustom(container: JQuery, onSearch: (p1: string, p2: string, p3: (p1: boolean) => void) => void, fields?: QuickSearchField[]): void;
         function makeOrderable(grid: Slick.Grid, handleMove: (p1: any, p2: number) => void): void;
         function makeOrderableWithUpdateRequest(grid: DataGrid<any, any>, getId: (p1: any) => number, getDisplayOrder: (p1: any) => any, service: string, getUpdateRequest: (p1: number, p2: number) => SaveRequest<any>): void;
     }
+}
+declare namespace Serenity {
     interface QuickSearchField {
         name: string;
         title: string;
@@ -1577,6 +1575,25 @@ declare namespace Serenity {
         constructor(container: JQuery, opt: GoogleMapOptions);
         get_map(): any;
     }
+    interface HtmlContentEditorOptions {
+        cols?: any;
+        rows?: any;
+    }
+    class HtmlContentEditor extends Widget<HtmlContentEditorOptions> implements IStringValue, IReadOnly {
+        private _instanceReady;
+        constructor(textArea: JQuery, opt?: HtmlContentEditorOptions);
+        protected instanceReady(x: any): void;
+        protected getLanguage(): string;
+        protected getConfig(): CKEditorConfig;
+        protected getEditorInstance(): any;
+        destroy(): void;
+        get_value(): string;
+        value: string;
+        set_value(value: string): void;
+        get_readOnly(): boolean;
+        set_readOnly(value: boolean): void;
+        static includeCKEditor(): void;
+    }
 }
 declare namespace Serenity {
     interface RadioButtonEditorOptions {
@@ -1586,17 +1603,6 @@ declare namespace Serenity {
     }
     class RadioButtonEditor extends Widget<RadioButtonEditorOptions> {
         constructor(input: JQuery, opt: RadioButtonEditorOptions);
-        value: string;
-    }
-    interface HtmlContentEditorOptions {
-        cols?: any;
-        rows?: any;
-    }
-    class HtmlContentEditor extends Widget<HtmlContentEditorOptions> {
-        constructor(textArea: JQuery, opt?: HtmlContentEditorOptions);
-        instanceReady(x: any): void;
-        getLanguage(): string;
-        getConfig(): CKEditorConfig;
         value: string;
     }
     class HtmlNoteContentEditor extends HtmlContentEditor {
@@ -2879,8 +2885,8 @@ declare namespace Slick {
     }
     class RowMoveManager {
         constructor(options: Slick.RowMoveManagerOptions);
-        get_onBeforeMoveRows(): Slick.Event;
-        get_onMoveRows(): Slick.Event;
+        onBeforeMoveRows: Slick.Event;
+        onMoveRows: Slick.Event;
     }
     class RowSelectionModel {
     }
@@ -2980,6 +2986,7 @@ declare namespace Slick {
         constructor(options: RemoteViewOptions): void;
         onSubmit: Slick.CancellableViewCallback<TEntity>;
         onDataChanged: Slick.Event;
+        onDataLoaded: Slick.Event;
         onAjaxCall: Slick.RemoteViewAjaxCallback<TEntity>;
         onProcessData: Slick.RemoteViewProcessCallback<TEntity>;
         addData(data: Serenity.ListResponse<TEntity>): void;
@@ -3006,9 +3013,11 @@ declare namespace Slick {
         populateLock(): void;
         populateUnlock(): void;
         getItem(row: number): any;
+        getLength(): number;
         params: any;
         sortBy: string[];
         url: string;
+        seekToPage?: number;
     }
     interface RemoteViewOptions {
         autoLoad?: boolean;

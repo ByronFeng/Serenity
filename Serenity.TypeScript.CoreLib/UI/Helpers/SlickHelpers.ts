@@ -137,26 +137,248 @@
             };
         }
     }
+
+    export namespace GridSelectAllButtonHelper {
+        export function update(grid: IDataGrid, getSelected: (p1: any) => boolean): void {
+            var toolbar = (grid as any).element.children('.s-Toolbar') as JQuery;
+            if (toolbar.length === 0) {
+                return;
+            }
+            var btn = toolbar.getWidget(Toolbar).findButton('select-all-button');
+            var items = grid.getView().getItems();
+            btn.toggleClass('checked', items.length > 0 && !items.some(function (x) {
+                return !getSelected(x);
+            }));
+        }
+
+        export function define(getGrid: () => IDataGrid, getId: (p1: any) => any,
+            getSelected: (p1: any) => boolean,
+            setSelected: (p1: any, p2: boolean) => void,
+            text?: string, onClick?: () => void): ToolButton {
+
+            if (text == null) {
+                text = Q.coalesce(Q.tryGetText('Controls.CheckTreeEditor.SelectAll'),
+                    'Select All');
+            }
+            return {
+                title: text,
+                cssClass: 'select-all-button',
+                onClick: function () {
+                    var grid = getGrid();
+                    var view = grid.getView();
+                    var btn = (grid as any).element.children('.s-Toolbar')
+                        .getWidget(Toolbar).findButton('select-all-button');
+                    var makeSelected = !btn.hasClass('checked');
+                    view.beginUpdate();
+                    try {
+                        for (var item of view.getItems()) {
+                            setSelected(item, makeSelected);
+                            view.updateItem(getId(item), item);
+                        }
+                        onClick && onClick();
+                    }
+                    finally {
+                        view.endUpdate();
+                    }
+
+                    btn.toggleClass('checked', makeSelected);
+                }
+            };
+        }
+    }
+
+    export namespace GridUtils {
+        export function addToggleButton(toolDiv: JQuery, cssClass: string,
+            callback: (p1: boolean) => void, hint: string, initial?: boolean): void {
+
+            var div = $('<div><a href="#"></a></div>')
+                .addClass('s-ToggleButton').addClass(cssClass)
+                .prependTo(toolDiv);
+            div.children('a').click(function (e) {
+                e.preventDefault();
+                div.toggleClass('pressed');
+                var pressed = div.hasClass('pressed');
+                callback && callback(pressed);
+            }).attr('title', Q.coalesce(hint, ''));
+            if (initial) {
+                div.addClass('pressed');
+            }
+        }
+
+        export function addIncludeDeletedToggle(toolDiv: JQuery,
+            view: Slick.RemoteView<any>, hint?: string, initial?: boolean): void {
+
+            var includeDeleted = false;
+            var oldSubmit = view.onSubmit;
+            view.onSubmit = function (v) {
+                v.params.IncludeDeleted = includeDeleted;
+                if (oldSubmit != null) {
+                    return oldSubmit(v);
+                }
+                return true;
+            };
+
+            if (hint == null) 
+                hint = Q.text('Controls.EntityGrid.IncludeDeletedToggle');
+            
+            addToggleButton(toolDiv, 's-IncludeDeletedToggle',
+                function (pressed) {
+                    includeDeleted = pressed;
+                    view.seekToPage = 1;
+                    view.populate();
+                }, hint, initial);
+            toolDiv.bind('remove', function () {
+                view.onSubmit = null;
+                oldSubmit = null;
+            });
+        }
+
+        export function addQuickSearchInput(toolDiv: JQuery,
+            view: Slick.RemoteView<any>, fields?: QuickSearchField[]): void {
+
+            var oldSubmit = view.onSubmit;
+            var searchText = '';
+            var searchField = '';
+            view.onSubmit = function (v) {
+                if (searchText != null && searchText.length > 0) {
+                    v.params.ContainsText = searchText;
+                }
+                else {
+                    delete v.params['ContainsText'];
+                }
+                if (searchField != null && searchField.length > 0) {
+                    v.params.ContainsField = searchField;
+                }
+                else {
+                    delete v.params['ContainsField'];
+                }
+
+                if (oldSubmit != null) 
+                    return oldSubmit(v);
+                
+                return true;
+            };
+
+            var lastDoneEvent: any = null;
+            addQuickSearchInputCustom(toolDiv, (field, query, done) => {
+                searchText = query;
+                searchField = field;
+                view.seekToPage = 1;
+                lastDoneEvent = done;
+                view.populate();
+            }, fields);
+
+            view.onDataLoaded.subscribe(function (e, ui) {
+                if (lastDoneEvent != null) {
+                    lastDoneEvent(view.getLength() > 0);
+                    lastDoneEvent = null;
+                }
+            });
+        }
+
+        function addQuickSearchInputCustom(container: JQuery,
+            onSearch: (p1: string, p2: string, done: (p3: boolean) => void) => void,
+            fields?: QuickSearchField[]) {
+
+            var div = $('<div><input type="text"/></div>')
+                .addClass('s-QuickSearchBar').prependTo(container);
+
+            if (fields != null && fields.length > 0) {
+                div.addClass('has-quick-search-fields');
+            }
+
+            new QuickSearchInput(div.children(), {
+                fields: fields,
+                onSearch: onSearch as any
+            });
+        }
+
+        export function makeOrderable(grid: Slick.Grid,
+            handleMove: (p1: any, p2: number) => void): void {
+
+            var moveRowsPlugin = new Slick.RowMoveManager({ cancelEditOnDrag: true });
+            moveRowsPlugin.onBeforeMoveRows.subscribe(function (e, data) {
+                for (var i = 0; !!(i < data.rows.length); i++) {
+                    if (!!(data.rows[i] === data.insertBefore ||
+                        data.rows[i] === data.insertBefore - 1)) {
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            moveRowsPlugin.onMoveRows.subscribe(function (e1, data1) {
+                handleMove(data1.rows, data1.insertBefore);
+                try {
+                    grid.setSelectedRows([]);
+                }
+                catch ($t1) {
+                }
+            });
+            grid.registerPlugin(moveRowsPlugin);
+        }
+
+        export function makeOrderableWithUpdateRequest(grid: DataGrid<any, any>,
+            getId: (p1: any) => number, getDisplayOrder: (p1: any) => any, service: string,
+            getUpdateRequest: (p1: number, p2: number) => SaveRequest<any>): void {
+
+            makeOrderable(grid.slickGrid, function (rows, insertBefore) {
+                if (rows.length === 0) {
+                    return;
+                }
+
+                var order: number;
+                var index = insertBefore;
+                if (index < 0) {
+                    order = 1;
+                }
+                else if (insertBefore >= grid.rowCount()) {
+                    order = Q.coalesce(getDisplayOrder(
+                        grid.itemAt(grid.rowCount() - 1)), 0);
+                    if (order === 0) {
+                        order = insertBefore + 1;
+                    }
+                    else {
+                        order = order + 1;
+                    }
+                }
+                else {
+                    order = Q.coalesce(getDisplayOrder(
+                        grid.itemAt(insertBefore)), 0);
+                    if (order === 0) {
+                        order = insertBefore + 1;
+                    }
+                }
+
+                var i = 0;
+                var next: any = null;
+                next = function () {
+                    Q.serviceCall({
+                        service: service,
+                        request: getUpdateRequest(getId(
+                            grid.itemAt(rows[i])), order++),
+                        onSuccess: function (response) {
+                            i++;
+                            if (i < rows.length) {
+                                next();
+                            }
+                            else {
+                                grid.view.populate();
+                            }
+                        }
+                    });
+                };
+                next();
+            });
+        }
+    }
 }
 
 declare namespace Serenity {
+
     
-
-    namespace GridSelectAllButtonHelper {
-        function update(grid: IDataGrid, getSelected: (p1: any) => boolean): void;
-        function define(getGrid: () => IDataGrid, getId: (p1: any) => any, getSelected: (p1: any) => boolean, setSelected: (p1: any, p2: boolean) => void, text?: string, onClick?: () => void): ToolButton;
-    }
-
-    namespace GridUtils {
-        function addToggleButton(toolDiv: JQuery, cssClass: string, callback: (p1: boolean) => void, hint: string, initial?: boolean): void;
-        function addIncludeDeletedToggle(toolDiv: JQuery, view: Slick.RemoteView<any>, hint?: string, initial?: boolean): void;
-        function addQuickSearchInput(toolDiv: JQuery, view: Slick.RemoteView<any>, fields?: QuickSearchField[]): void;
-        function addQuickSearchInputCustom(container: JQuery, onSearch: (p1: string, p2: string) => void, fields?: QuickSearchField[]): void;
-        function addQuickSearchInputCustom(container: JQuery, onSearch: (p1: string, p2: string, p3: (p1: boolean) => void) => void, fields?: QuickSearchField[]): void;
-        function makeOrderable(grid: Slick.Grid, handleMove: (p1: any, p2: number) => void): void;
-        function makeOrderableWithUpdateRequest(grid: DataGrid<any, any>, getId: (p1: any) => number, getDisplayOrder: (p1: any) => any, service: string, getUpdateRequest: (p1: number, p2: number) => SaveRequest<any>): void;
-    }
-
     interface QuickSearchField {
         name: string;
         title: string;
