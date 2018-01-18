@@ -197,15 +197,9 @@ namespace Serenity
         }
     }
 
-    [Serializable, Reflectable]
+    [Imported, Serializable, Reflectable]
     public class HtmlContentEditorOptions
     {
-        public HtmlContentEditorOptions()
-        {
-            Cols = 80;
-            Rows = 6;
-        }
-
         [Hidden]
         public int? Cols { get; set; }
         [Hidden]
