@@ -4124,8 +4124,75 @@ var Serenity;
     var DateTimeEditor = /** @class */ (function (_super) {
         __extends(DateTimeEditor, _super);
         function DateTimeEditor(input, opt) {
-            return _super.call(this, input, opt) || this;
+            var _this = _super.call(this, input, opt) || this;
+            input.addClass('dateQ s-DateTimeEditor').datepicker({
+                showOn: 'button',
+                beforeShow: function () {
+                    return !input.hasClass('readonly');
+                },
+                yearRange: Q.coalesce(_this.options.yearRange, '-100:+50')
+            });
+            input.bind('keyup.' + _this.uniqueName, function (e) {
+                if (e.which === 32 && !_this.get_readOnly()) {
+                    if (_this.get_valueAsDate() !== new Date()) {
+                        _this.set_valueAsDate(new Date());
+                        _this.element.trigger('change');
+                    }
+                }
+                else {
+                    Serenity.DateEditor.dateInputKeyup(e);
+                }
+            });
+            input.bind('change.' + _this.uniqueName, Serenity.DateEditor.dateInputChange);
+            _this.time = $('<select/>').addClass('editor s-DateTimeEditor time');
+            var after = input.next('.ui-datepicker-trigger');
+            if (after.length > 0) {
+                _this.time.insertAfter(after);
+            }
+            else {
+                after = input.prev('.ui-datepicker-trigger');
+                if (after.length > 0) {
+                    _this.time.insertBefore(after);
+                }
+                else {
+                    _this.time.insertAfter(input);
+                }
+            }
+            var timeOpt = DateTimeEditor_1.getTimeOptions(Q.coalesce(_this.options.startHour, 0), 0, Q.coalesce(_this.options.endHour, 23), 59, Q.coalesce(_this.options.intervalMinutes, 5));
+            for (var _i = 0, timeOpt_1 = timeOpt; _i < timeOpt_1.length; _i++) {
+                var t = timeOpt_1[_i];
+                Q.addOption(_this.time, t, t);
+            }
+            Serenity.VX.addValidationRule(input, _this.uniqueName, function (e1) {
+                var value = _this.get_value();
+                if (Q.isEmptyOrNull(value)) {
+                    return null;
+                }
+                if (!Q.isEmptyOrNull(_this.get_minValue()) &&
+                    ss.compareStrings(value, _this.get_minValue()) < 0) {
+                    return Q.format(Q.text('Validation.MinDate'), Q.formatDate(_this.get_minValue(), null));
+                }
+                if (!Q.isEmptyOrNull(_this.get_maxValue()) &&
+                    ss.compareStrings(value, _this.get_maxValue()) >= 0) {
+                    return Q.format(Q.text('Validation.MaxDate'), Q.formatDate(_this.get_maxValue(), null));
+                }
+                return null;
+            });
+            _this.set_sqlMinMax(true);
+            $("<div class='inplace-button inplace-now'><b></b></div>")
+                .attr('title', 'set to now')
+                .insertAfter(_this.time).click(function (e2) {
+                if (_this.element.hasClass('readonly')) {
+                    return;
+                }
+                _this.set_valueAsDate(new Date());
+            });
+            _this.time.on('change', function (e3) {
+                input.triggerHandler('change');
+            });
+            return _this;
         }
+        DateTimeEditor_1 = DateTimeEditor;
         DateTimeEditor.prototype.get_value = function () {
             var value = this.element.val().trim();
             if (value != null && value.length === 0) {
@@ -4248,6 +4315,30 @@ var Serenity;
             date.setMilliseconds(0);
             return date;
         };
+        DateTimeEditor.getTimeOptions = function (fromHour, fromMin, toHour, toMin, stepMins) {
+            var list = [];
+            if (toHour >= 23) {
+                toHour = 23;
+            }
+            if (toMin >= 60) {
+                toMin = 59;
+            }
+            var hour = fromHour;
+            var min = fromMin;
+            while (true) {
+                if (hour > toHour || hour === toHour && min > toMin) {
+                    break;
+                }
+                var t = ((hour >= 10) ? '' : '0') + hour + ':' + ((min >= 10) ? '' : '0') + min;
+                list.push(t);
+                min += stepMins;
+                if (min >= 60) {
+                    min -= 60;
+                    hour++;
+                }
+            }
+            return list;
+        };
         __decorate([
             Serenity.Decorators.option()
         ], DateTimeEditor.prototype, "get_minValue", null);
@@ -4260,11 +4351,12 @@ var Serenity;
         __decorate([
             Serenity.Decorators.option()
         ], DateTimeEditor.prototype, "get_sqlMinMax", null);
-        DateTimeEditor = __decorate([
+        DateTimeEditor = DateTimeEditor_1 = __decorate([
             Serenity.Decorators.registerEditor('Serenity.DateTimeEditor', [Serenity.IStringValue, Serenity.IReadOnly]),
             Serenity.Decorators.element('<input/>')
         ], DateTimeEditor);
         return DateTimeEditor;
+        var DateTimeEditor_1;
     }(Serenity.Widget));
     Serenity.DateTimeEditor = DateTimeEditor;
 })(Serenity || (Serenity = {}));

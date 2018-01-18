@@ -1314,6 +1314,7 @@ declare namespace Serenity {
         get_readOnly(): boolean;
         set_readOnly(value: boolean): void;
         static roundToMinutes(date: Date, minutesStep: number): Date;
+        static getTimeOptions: (fromHour: number, fromMin: number, toHour: number, toMin: number, stepMins: number) => string[];
     }
     interface DateTimeEditorOptions {
         startHour?: any;
